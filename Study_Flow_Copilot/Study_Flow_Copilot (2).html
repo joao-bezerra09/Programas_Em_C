@@ -1,0 +1,1252 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#101827">
+  <title>StudyFlow — Organizador de estudos</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f4f7fb;
+      --surface: #fff;
+      --surface-2: #f8fafc;
+      --text: #172033;
+      --muted: #6b778c;
+      --border: #e1e7ef;
+      --navy: #101827;
+      --blue: #2563eb;
+      --blue-light: #60a5fa;
+      --green: #159447;
+      --red: #d33b48;
+      --amber: #b86e08;
+      --shadow: 0 10px 28px rgba(16, 24, 39, .07);
+    }
+
+    [data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #0b1220;
+      --surface: #111b2d;
+      --surface-2: #18243a;
+      --text: #edf4ff;
+      --muted: #a1afc2;
+      --border: #29374d;
+      --navy: #070d18;
+      --shadow: 0 10px 28px rgba(0, 0, 0, .22);
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    button, input, select, textarea { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { opacity: .5; cursor: not-allowed; }
+    .sidebar {
+      position: fixed; inset: 0 auto 0 0; z-index: 20;
+      width: 238px; padding: 22px 14px; color: #fff;
+      background: var(--navy); transition: transform .22s ease;
+    }
+    .brand {
+      display: flex; align-items: center; gap: 11px; padding: 3px 8px 24px;
+      color: #fff; text-decoration: none; font-size: 19px; font-weight: 800;
+    }
+    .brand-icon {
+      display: grid; width: 38px; height: 38px; place-items: center;
+      border-radius: 12px; background: var(--blue); color: white; font-size: 13px;
+    }
+    .nav { display: grid; gap: 5px; }
+    .nav button {
+      border: 0; border-radius: 9px; padding: 11px 12px; text-align: left;
+      color: #c3cee0; background: transparent; transition: .18s;
+    }
+    .nav button:hover, .nav button.active { background: rgba(96,165,250,.17); color: white; }
+    .nav-icon { display: inline-block; width: 25px; color: #91baff; }
+    .main { min-height: 100vh; margin-left: 238px; }
+    .topbar {
+      position: sticky; top: 0; z-index: 10; height: 68px; padding: 0 30px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--surface); border-bottom: 1px solid var(--border);
+    }
+    .topbar-title { font-weight: 750; }
+    .topbar-actions { display: flex; gap: 9px; align-items: center; }
+    .content { max-width: 1440px; margin: auto; padding: 28px 30px 48px; }
+    .page { display: none; }
+    .page.active { display: block; animation: enter .2s ease; }
+    @keyframes enter { from { opacity: .3; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+    .heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 22px; }
+    .heading h1 { margin: 2px 0 0; font-size: clamp(24px, 3vw, 30px); letter-spacing: -.5px; }
+    .eyebrow { margin: 0; color: var(--muted); font-size: 13px; }
+    .grid { display: grid; gap: 16px; }
+    .stats { grid-template-columns: repeat(4, minmax(0, 1fr)); margin-bottom: 16px; }
+    .two-col { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card, .stat-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; box-shadow: var(--shadow);
+    }
+    .card { padding: 20px; }
+    .stat-card { min-width: 0; padding: 17px 18px; }
+    .stat-card span { display: block; color: var(--muted); font-size: 13px; }
+    .stat-card strong { display: block; margin-top: 6px; font-size: 24px; overflow-wrap: anywhere; }
+    .card h2 { margin: 0 0 14px; font-size: 17px; }
+    .card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .card-head h2 { margin: 0; }
+    .wide { grid-column: 1 / -1; }
+    .btn, .icon-btn {
+      min-height: 40px; border: 1px solid transparent; border-radius: 9px;
+      padding: 9px 14px; transition: background .16s, transform .16s, border-color .16s;
+    }
+    .btn:hover, .icon-btn:hover { transform: translateY(-1px); }
+    .btn-primary { background: var(--blue); color: white; font-weight: 700; }
+    .btn-primary:hover { background: #1d4ed8; }
+    .btn-secondary { background: var(--surface); border-color: var(--border); color: var(--text); }
+    .btn-quiet { background: transparent; color: var(--blue); border: 0; padding: 7px; }
+    .btn-danger { background: transparent; color: var(--red); border-color: var(--border); }
+    .icon-btn {
+      min-width: 40px; padding: 7px 10px; background: var(--surface);
+      color: var(--text); border-color: var(--border); font-size: 18px;
+    }
+    input, select, textarea {
+      width: 100%; min-height: 42px; padding: 9px 11px; color: var(--text);
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+      outline: none;
+    }
+    input:focus, select:focus, textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.12); }
+    label { display: grid; gap: 6px; color: var(--muted); font-size: 13px; }
+    .form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 13px; }
+    .stack { display: grid; gap: 13px; }
+    .toolbar { display: flex; gap: 10px; margin-bottom: 15px; }
+    .toolbar .search { flex: 1; }
+    .list { display: grid; gap: 9px; }
+    .list-row {
+      display: flex; justify-content: space-between; align-items: center; gap: 12px;
+      padding: 10px 0; border-bottom: 1px solid var(--border);
+    }
+    .list-row:last-child { border-bottom: 0; }
+    .list-row small, .muted { color: var(--muted); }
+    .empty { color: var(--muted); padding: 8px 0; }
+    .task-row {
+      display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto;
+      align-items: center; gap: 12px; padding: 13px;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    }
+    .task-row.done .task-title { color: var(--muted); text-decoration: line-through; }
+    .task-row input[type="checkbox"] { width: 18px; min-height: 18px; accent-color: var(--blue); }
+    .task-title { font-weight: 700; }
+    .tag { display: inline-block; padding: 4px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; }
+    .tag.high { background: #fee2e2; color: #a5222e; }
+    .tag.medium { background: #fef3c7; color: #85520b; }
+    .tag.low { background: #dcfce7; color: #17653a; }
+    [data-theme="dark"] .tag.high { background: #4a222b; color: #ffb1b8; }
+    [data-theme="dark"] .tag.medium { background: #46371b; color: #f5d17e; }
+    [data-theme="dark"] .tag.low { background: #1d402d; color: #9de0b5; }
+    .task-actions { display: flex; gap: 6px; }
+    .task-actions button { min-height: 34px; padding: 5px 9px; }
+    .calendar { overflow: hidden; }
+    .calendar-controls { display: flex; justify-content: center; align-items: center; gap: 13px; margin-bottom: 10px; }
+    .calendar-controls h2 { min-width: 190px; text-align: center; margin: 0; text-transform: capitalize; }
+    .weekdays, .calendar-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+    .weekdays span { padding: 8px 3px; text-align: center; color: var(--muted); font-size: 12px; }
+    .day-cell {
+      position: relative; min-height: 108px; padding: 7px; text-align: left;
+      color: var(--text); background: transparent; border: 1px solid var(--border);
+      border-width: 1px 1px 0 0; overflow: hidden;
+    }
+    .day-cell:nth-child(7n+1) { border-left: 1px solid var(--border); }
+    .day-cell.outside { opacity: .45; }
+    .day-cell.today { background: rgba(37,99,235,.07); }
+    .day-number { font-weight: 700; }
+    .event-chip {
+      display: block; width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;
+      margin-top: 4px; padding: 3px 5px; border: 0; border-radius: 4px;
+      text-align: left; color: white; font-size: 10px;
+    }
+    .event-chip.exam { background: #d33b48; }
+    .event-chip.assignment { background: #2563eb; }
+    .event-chip.appointment { background: #7c3aed; }
+    .routine-days { display: flex; flex-wrap: wrap; gap: 8px; }
+    .routine-days label {
+      display: flex; align-items: center; gap: 6px; padding: 8px 10px;
+      border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+    }
+    .routine-days input { width: 17px; min-height: 17px; accent-color: var(--blue); }
+    .period-row { display: grid; grid-template-columns: 1fr 1fr 1.5fr 1fr auto; gap: 8px; align-items: end; margin: 10px 0; }
+    .period-row label { font-size: 12px; }
+    .planner-grid { display: grid; grid-template-columns: repeat(7, minmax(130px,1fr)); gap: 9px; overflow-x: auto; }
+    .planner-day { min-height: 190px; padding: 10px; border: 1px solid var(--border); border-radius: 10px; }
+    .planner-day h3 { margin: 0 0 10px; font-size: 13px; }
+    .plan-item { margin-bottom: 7px; padding: 8px; border-left: 3px solid var(--blue); border-radius: 5px; background: rgba(37,99,235,.08); font-size: 12px; }
+    .plan-item.conflict { border-left-color: var(--red); }
+    .plan-item button { float: right; border: 0; background: transparent; color: var(--muted); }
+    .timer-layout { display: grid; grid-template-columns: minmax(0,1.4fr) minmax(260px,.8fr); gap: 16px; }
+    .timer-card { text-align: center; padding: 28px; }
+    .timer-mode { color: var(--muted); font-weight: 700; }
+    .timer-display { margin: 10px 0; font-size: clamp(66px, 12vw, 110px); line-height: 1.1; font-weight: 800; letter-spacing: -5px; }
+    .progress { max-width: 500px; height: 8px; margin: 18px auto; overflow: hidden; border-radius: 99px; background: var(--border); }
+    .progress > div { height: 100%; width: 0; background: var(--blue); transition: width .3s linear; }
+    .timer-buttons { display: flex; justify-content: center; gap: 8px; }
+    .history-row { font-size: 13px; }
+    .settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    canvas { display: block; width: 100%; height: 240px; }
+    .toast {
+      position: fixed; z-index: 50; right: 22px; bottom: 22px; max-width: min(390px, calc(100vw - 32px));
+      padding: 12px 16px; border-radius: 9px; background: var(--navy); color: white;
+      box-shadow: var(--shadow); opacity: 0; transform: translateY(12px); pointer-events: none; transition: .2s;
+    }
+    .toast.show { opacity: 1; transform: none; }
+    dialog {
+      width: min(510px, calc(100vw - 28px)); padding: 20px; color: var(--text);
+      background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
+      box-shadow: 0 22px 70px rgba(0,0,0,.28);
+    }
+    dialog::backdrop { background: rgba(8,14,25,.58); }
+    dialog form { display: grid; gap: 13px; }
+    .dialog-head, .dialog-actions { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+    .dialog-head h2 { margin: 0; font-size: 19px; }
+    .dialog-actions { justify-content: flex-end; margin-top: 5px; }
+    .file-label { display: inline-grid; place-items: center; }
+    .menu-toggle { display: none; }
+
+    @media (max-width: 1050px) {
+      .sidebar { transform: translateX(-100%); }
+      .sidebar.open { transform: none; box-shadow: 12px 0 35px rgba(0,0,0,.25); }
+      .main { margin-left: 0; }
+      .menu-toggle { display: inline-grid; }
+      .stats { grid-template-columns: repeat(2, minmax(0,1fr)); }
+    }
+    @media (max-width: 700px) {
+      .topbar { height: 60px; padding: 0 14px; }
+      .content { padding: 20px 14px 36px; }
+      .heading { align-items: flex-start; }
+      .two-col, .timer-layout, .settings-grid { grid-template-columns: 1fr; }
+      .wide { grid-column: auto; }
+      .toolbar { display: grid; grid-template-columns: 1fr; }
+      .task-row { grid-template-columns: auto minmax(0,1fr) auto; gap: 8px; }
+      .task-row .tag { grid-column: 2; width: fit-content; }
+      .task-actions { grid-column: 3; grid-row: 1 / span 2; flex-direction: column; }
+      .day-cell { min-height: 72px; padding: 4px; }
+      .event-chip { font-size: 9px; padding: 2px 3px; }
+      .period-row { grid-template-columns: 1fr 1fr; }
+      .period-row button { grid-column: 2; justify-self: end; }
+      .form-grid { grid-template-columns: 1fr; }
+      .timer-card { padding: 20px 12px; }
+      .calendar-controls h2 { min-width: 150px; font-size: 16px; }
+      .card { padding: 16px; }
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <a class="brand" href="#" data-page="dashboard"><span class="brand-icon">SF</span> StudyFlow</a>
+    <nav class="nav" aria-label="Navegação principal">
+      <button class="active" data-page="dashboard"><span class="nav-icon">⌂</span>Dashboard</button>
+      <button data-page="tasks"><span class="nav-icon">✓</span>Tarefas</button>
+      <button data-page="calendar"><span class="nav-icon">▦</span>Calendário</button>
+      <button data-page="routine"><span class="nav-icon">◷</span>Rotina escolar</button>
+      <button data-page="planner"><span class="nav-icon">☷</span>Cronograma</button>
+      <button data-page="pomodoro"><span class="nav-icon">●</span>Pomodoro</button>
+      <button data-page="statistics"><span class="nav-icon">▥</span>Estatísticas</button>
+      <button data-page="settings"><span class="nav-icon">⚙</span>Configurações</button>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="topbar-actions">
+        <button class="icon-btn menu-toggle" id="menu-toggle" aria-label="Abrir menu">☰</button>
+        <span class="topbar-title" id="topbar-title">Dashboard</span>
+      </div>
+      <button class="icon-btn" id="theme-toggle" aria-label="Alternar tema" title="Alternar tema">☾</button>
+    </header>
+
+    <div class="content">
+      <section class="page active" id="dashboard">
+        <div class="heading">
+          <div><p class="eyebrow">Sua jornada de estudos</p><h1 id="greeting">Olá!</h1></div>
+        </div>
+        <div class="grid stats" id="dashboard-stats"></div>
+        <div class="grid two-col">
+          <article class="card">
+            <div class="card-head"><h2>Próximos compromissos</h2><button class="btn-quiet" data-page="calendar">Ver calendário</button></div>
+            <div class="list" id="next-events"></div>
+          </article>
+          <article class="card">
+            <div class="card-head"><h2>Tarefas pendentes</h2><button class="btn-quiet" data-page="tasks">Ver tarefas</button></div>
+            <div class="list" id="pending-tasks"></div>
+          </article>
+          <article class="card wide"><h2>Estudo nos últimos 7 dias</h2><canvas id="dashboard-chart" aria-label="Gráfico de estudo dos últimos sete dias"></canvas></article>
+        </div>
+      </section>
+
+      <section class="page" id="tasks">
+        <div class="heading"><div><p class="eyebrow">Organização</p><h1>Tarefas</h1></div><button class="btn btn-primary" id="new-task">+ Nova tarefa</button></div>
+        <div class="toolbar">
+          <input class="search" id="task-search" type="search" placeholder="Pesquisar tarefas ou matérias">
+          <select id="task-filter"><option value="all">Todas as tarefas</option><option value="pending">Pendentes</option><option value="done">Concluídas</option></select>
+          <select id="priority-filter"><option value="all">Todas as prioridades</option><option value="high">Alta</option><option value="medium">Média</option><option value="low">Baixa</option></select>
+        </div>
+        <div class="list" id="task-list"></div>
+      </section>
+
+      <section class="page" id="calendar">
+        <div class="heading"><div><p class="eyebrow">Planejamento acadêmico</p><h1>Calendário</h1></div><button class="btn btn-primary" id="new-event">+ Novo compromisso</button></div>
+        <article class="card calendar">
+          <div class="calendar-controls">
+            <button class="icon-btn" id="month-prev" aria-label="Mês anterior">‹</button>
+            <h2 id="month-title"></h2>
+            <button class="icon-btn" id="month-next" aria-label="Próximo mês">›</button>
+          </div>
+          <div class="weekdays"><span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span></div>
+          <div class="calendar-grid" id="calendar-grid"></div>
+          <p class="eyebrow" style="margin-top:12px">Selecione uma data para cadastrar um compromisso. Clique em um compromisso para editar ou excluir.</p>
+        </article>
+      </section>
+
+      <section class="page" id="routine">
+        <div class="heading"><div><p class="eyebrow">Rotina Inteligente</p><h1>Rotina escolar</h1></div></div>
+        <article class="card">
+          <form id="routine-form" class="stack">
+            <div class="form-grid">
+              <label>Tipo de ensino<select id="school-type"><option value="regular">Ensino regular</option><option value="integral">Ensino integral</option></select></label>
+              <label>Entrada<input id="school-entry" type="time" required></label>
+              <label>Saída<input id="school-exit" type="time" required></label>
+            </div>
+            <div>
+              <h2>Dias de aula</h2>
+              <div class="routine-days" id="school-days"></div>
+            </div>
+            <div>
+              <div class="card-head"><h2>Grade de horários</h2><button class="btn btn-secondary" type="button" id="add-period">+ Adicionar período</button></div>
+              <p class="eyebrow">Cadastre aulas, intervalos/almoço e horários livres. Só os períodos marcados como “Aula” entram no estudo escolar.</p>
+              <div id="period-list"></div>
+            </div>
+            <div><button class="btn btn-primary" type="submit">Salvar rotina</button></div>
+          </form>
+        </article>
+        <article class="card" style="margin-top:16px">
+          <h2>Como a contagem funciona</h2>
+          <p class="muted">O tempo escolar é calculado a partir dos períodos de aula cadastrados, excluindo intervalos, almoço e períodos livres. Para hoje, conta apenas a parte dos períodos que já passou. O cronograma evita esses horários.</p>
+          <div id="routine-summary" class="muted"></div>
+        </article>
+      </section>
+
+      <section class="page" id="planner">
+        <div class="heading"><div><p class="eyebrow">Organização semanal</p><h1>Cronograma de estudos</h1></div><button class="btn btn-primary" id="new-plan">+ Novo estudo</button></div>
+        <article class="card"><div class="planner-grid" id="planner-grid"></div></article>
+      </section>
+
+      <section class="page" id="pomodoro">
+        <div class="heading"><div><p class="eyebrow">Foco e concentração</p><h1>Pomodoro</h1></div></div>
+        <div class="timer-layout">
+          <article class="card timer-card">
+            <div class="timer-mode" id="timer-mode">Concentração</div>
+            <div class="timer-display" id="timer-display">25:00</div>
+            <div class="progress"><div id="timer-progress"></div></div>
+            <label style="max-width:400px;margin:0 auto 16px;text-align:left">Matéria desta sessão<input id="pomodoro-subject" value="Estudo geral" maxlength="60"></label>
+            <div class="timer-buttons">
+              <button class="btn btn-primary" id="timer-start">Iniciar</button>
+              <button class="btn btn-secondary" id="timer-pause" disabled>Pausar</button>
+              <button class="icon-btn" id="timer-reset" aria-label="Reiniciar timer" title="Reiniciar">↻</button>
+            </div>
+            <p class="eyebrow" id="session-count" style="margin-top:14px"></p>
+          </article>
+          <article class="card">
+            <h2>Registrar estudo manual</h2>
+            <form id="manual-form" class="stack">
+              <label>Matéria<input id="manual-subject" required maxlength="60" placeholder="Ex.: Biologia"></label>
+              <label>Duração em minutos<input id="manual-minutes" type="number" min="1" max="1440" required></label>
+              <button class="btn btn-primary" type="submit">Registrar estudo fora da escola</button>
+            </form>
+            <hr style="border:0;border-top:1px solid var(--border);margin:18px 0">
+            <h2>Registros recentes</h2>
+            <div class="list" id="study-history"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="page" id="statistics">
+        <div class="heading"><div><p class="eyebrow">Seu progresso real</p><h1>Estatísticas</h1></div></div>
+        <div class="grid stats" id="statistics-stats"></div>
+        <div class="grid two-col">
+          <article class="card wide"><h2>Minutos estudados por dia · últimos 7 dias</h2><canvas id="daily-chart"></canvas></article>
+          <article class="card wide"><h2>Tempo registrado por matéria</h2><canvas id="subject-chart"></canvas></article>
+        </div>
+      </section>
+
+      <section class="page" id="settings">
+        <div class="heading"><div><p class="eyebrow">Preferências e dados</p><h1>Configurações</h1></div></div>
+        <div class="grid settings-grid">
+          <article class="card">
+            <h2>Perfil e aparência</h2>
+            <form id="profile-form" class="stack">
+              <label>Nome de exibição<input id="display-name" maxlength="50" placeholder="Como podemos chamar você?"></label>
+              <label>Tema<select id="theme-select"><option value="light">Claro</option><option value="dark">Escuro</option></select></label>
+              <button class="btn btn-primary">Salvar preferências</button>
+            </form>
+          </article>
+          <article class="card">
+            <h2>Tempos do Pomodoro</h2>
+            <form id="pomodoro-settings" class="stack">
+              <div class="form-grid">
+                <label>Foco (min)<input type="number" id="focus-min" min="1" max="180" required></label>
+                <label>Descanso (min)<input type="number" id="break-min" min="1" max="60" required></label>
+                <label>Pausa longa (min)<input type="number" id="long-break-min" min="1" max="120" required></label>
+              </div>
+              <button class="btn btn-primary">Salvar tempos</button>
+            </form>
+          </article>
+          <article class="card">
+            <h2>Backup</h2>
+            <p class="muted">Exporte seus dados ou importe um arquivo JSON do StudyFlow.</p>
+            <div class="toolbar">
+              <button class="btn btn-secondary" id="export-data">Exportar JSON</button>
+              <label class="btn btn-secondary file-label">Importar JSON<input type="file" id="import-data" accept=".json,application/json" hidden></label>
+            </div>
+          </article>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <dialog id="task-dialog">
+    <form id="task-form">
+      <div class="dialog-head"><h2 id="task-dialog-title">Nova tarefa</h2><button class="icon-btn" type="button" data-close aria-label="Fechar">×</button></div>
+      <input type="hidden" id="task-id">
+      <label>Título<input id="task-title" required maxlength="120"></label>
+      <label>Matéria<input id="task-subject" required maxlength="60"></label>
+      <div class="form-grid">
+        <label>Prazo<input id="task-due" type="date" required></label>
+        <label>Prioridade<select id="task-priority"><option value="high">Alta</option><option value="medium" selected>Média</option><option value="low">Baixa</option></select></label>
+      </div>
+      <div class="dialog-actions"><button class="btn btn-secondary" type="button" data-close>Cancelar</button><button class="btn btn-primary">Salvar tarefa</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="event-dialog">
+    <form id="event-form">
+      <div class="dialog-head"><h2 id="event-dialog-title">Novo compromisso</h2><button class="icon-btn" type="button" data-close aria-label="Fechar">×</button></div>
+      <input type="hidden" id="event-id">
+      <label>Título<input id="event-title" required maxlength="120"></label>
+      <div class="form-grid">
+        <label>Data<input id="event-date" type="date" required></label>
+        <label>Tipo<select id="event-type"><option value="exam">Prova</option><option value="assignment">Trabalho</option><option value="appointment">Compromisso</option></select></label>
+      </div>
+      <label>Descrição<textarea id="event-description" rows="3" maxlength="500"></textarea></label>
+      <div class="dialog-actions">
+        <button class="btn btn-danger" id="delete-event" type="button" hidden>Excluir</button>
+        <button class="btn btn-secondary" type="button" data-close>Cancelar</button>
+        <button class="btn btn-primary">Salvar compromisso</button>
+      </div>
+    </form>
+  </dialog>
+
+  <dialog id="plan-dialog">
+    <form id="plan-form">
+      <div class="dialog-head"><h2>Novo estudo semanal</h2><button class="icon-btn" type="button" data-close aria-label="Fechar">×</button></div>
+      <label>Matéria<input id="plan-subject" required maxlength="60"></label>
+      <div class="form-grid">
+        <label>Dia<select id="plan-day"><option value="1">Segunda-feira</option><option value="2">Terça-feira</option><option value="3">Quarta-feira</option><option value="4">Quinta-feira</option><option value="5">Sexta-feira</option><option value="6">Sábado</option><option value="0">Domingo</option></select></label>
+        <label>Horário<input id="plan-time" type="time" required></label>
+      </div>
+      <label>Duração (minutos)<input id="plan-duration" type="number" min="15" max="360" value="60" required></label>
+      <div class="dialog-actions"><button class="btn btn-secondary" type="button" data-close>Cancelar</button><button class="btn btn-primary">Salvar horário</button></div>
+    </form>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    "use strict";
+
+    (() => {
+      const KEY = "studyflow-single-v1";
+      const defaults = () => ({
+        profile: { name: "", theme: "light" },
+        pomodoro: { focus: 25, rest: 5, longRest: 15 },
+        tasks: [], events: [], plans: [], records: [],
+        routine: { type: "regular", entry: "07:30", exit: "12:30", days: [1,2,3,4,5], periods: [] },
+        schoolSnapshots: {},
+        pomodoroSessions: 0
+      });
+
+      function loadData() {
+        try {
+          const raw = localStorage.getItem(KEY);
+          if (!raw) return defaults();
+          const saved = JSON.parse(raw);
+          const base = defaults();
+          return {
+            ...base, ...saved,
+            profile: { ...base.profile, ...(saved.profile || {}) },
+            pomodoro: { ...base.pomodoro, ...(saved.pomodoro || {}) },
+            routine: { ...base.routine, ...(saved.routine || {}) },
+            tasks: Array.isArray(saved.tasks) ? saved.tasks : [],
+            events: Array.isArray(saved.events) ? saved.events : [],
+            plans: Array.isArray(saved.plans) ? saved.plans : [],
+            records: Array.isArray(saved.records) ? saved.records : [],
+            schoolSnapshots: saved.schoolSnapshots && typeof saved.schoolSnapshots === "object" ? saved.schoolSnapshots : {}
+          };
+        } catch (error) {
+          console.error("StudyFlow: não foi possível ler os dados salvos.", error);
+          return defaults();
+        }
+      }
+
+      let data = loadData();
+      const $ = (selector, root = document) => root.querySelector(selector);
+      const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
+      const pad = n => String(n).padStart(2, "0");
+      const dateKey = (date = new Date()) => `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;
+      const today = () => dateKey();
+      const uid = prefix => `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+      const esc = value => String(value ?? "").replace(/[&<>"']/g, char => ({
+        "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+      }[char]));
+      const localDate = key => {
+        const [year, month, day] = key.split("-").map(Number);
+        return new Date(year, month - 1, day);
+      };
+      const timeMinutes = time => {
+        if (!/^\d{2}:\d{2}$/.test(time || "")) return 0;
+        const [h,m] = time.split(":").map(Number);
+        return h * 60 + m;
+      };
+      const fmtMinutes = value => {
+        const mins = Math.max(0, Math.round(Number(value) || 0));
+        const hours = Math.floor(mins / 60);
+        return hours ? `${hours} h${mins % 60 ? ` ${mins % 60} min` : ""}` : `${mins} min`;
+      };
+      const save = () => {
+        try {
+          localStorage.setItem(KEY, JSON.stringify(data));
+          return true;
+        } catch (error) {
+          console.error("StudyFlow: erro ao salvar.", error);
+          toast("Não foi possível salvar. Verifique o espaço disponível no navegador.");
+          return false;
+        }
+      };
+
+      let toastTimer;
+      function toast(message) {
+        const node = $("#toast");
+        node.textContent = message;
+        node.classList.add("show");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => node.classList.remove("show"), 2800);
+      }
+
+      function applyTheme(theme) {
+        document.documentElement.dataset.theme = theme === "dark" ? "dark" : "light";
+        $("#theme-toggle").textContent = theme === "dark" ? "☀" : "☾";
+      }
+
+      const pageNames = {
+        dashboard:"Dashboard", tasks:"Tarefas", calendar:"Calendário",
+        routine:"Rotina escolar", planner:"Cronograma", pomodoro:"Pomodoro",
+        statistics:"Estatísticas", settings:"Configurações"
+      };
+
+      function openPage(name) {
+        if (!pageNames[name]) return;
+        $$(".page").forEach(page => page.classList.toggle("active", page.id === name));
+        $$(".nav button").forEach(button => button.classList.toggle("active", button.dataset.page === name));
+        $("#topbar-title").textContent = pageNames[name];
+        $("#sidebar").classList.remove("open");
+        if (name === "statistics") renderStatistics();
+        if (name === "dashboard") renderDashboard();
+      }
+
+      document.addEventListener("click", event => {
+        const pageButton = event.target.closest("[data-page]");
+        if (pageButton) {
+          event.preventDefault();
+          openPage(pageButton.dataset.page);
+        }
+        const closeButton = event.target.closest("[data-close]");
+        if (closeButton) closeButton.closest("dialog").close();
+      });
+
+      $("#menu-toggle").addEventListener("click", () => $("#sidebar").classList.toggle("open"));
+      $("#theme-toggle").addEventListener("click", () => {
+        data.profile.theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+        applyTheme(data.profile.theme);
+        save();
+        $("#theme-select").value = data.profile.theme;
+        drawAllCharts();
+      });
+
+      function schoolMinutes(key) {
+        if (Object.prototype.hasOwnProperty.call(data.schoolSnapshots, key)) {
+          return Number(data.schoolSnapshots[key]) || 0;
+        }
+        const date = localDate(key);
+        const routine = data.routine;
+        if (!routine.days.includes(date.getDay())) return 0;
+
+        const now = new Date();
+        const isToday = key === today();
+        const cutoff = isToday ? now.getHours() * 60 + now.getMinutes() : 24 * 60;
+        if (key > today()) return 0;
+
+        return routine.periods
+          .filter(period => period.kind === "class")
+          .reduce((sum, period) => {
+            const start = timeMinutes(period.start);
+            const end = timeMinutes(period.end);
+            return sum + Math.max(0, Math.min(end, cutoff) - start);
+          }, 0);
+      }
+
+      function outsideMinutes(key) {
+        return data.records.filter(record => record.date === key && record.location === "outside")
+          .reduce((sum, record) => sum + Number(record.minutes || 0), 0);
+      }
+
+      function allStudyMinutes(key) {
+        return schoolMinutes(key) + outsideMinutes(key);
+      }
+
+      function renderDashboard() {
+        const hour = new Date().getHours();
+        const greeting = hour < 12 ? "Bom dia" : hour < 18 ? "Boa tarde" : "Boa noite";
+        $("#greeting").textContent = `${greeting}${data.profile.name ? `, ${data.profile.name}` : ""}!`;
+        const pending = data.tasks.filter(task => !task.done).length;
+        const completed = data.tasks.filter(task => task.done).length;
+        const school = schoolMinutes(today());
+        const outside = outsideMinutes(today());
+
+        $("#dashboard-stats").innerHTML = [
+          statCard("Tarefas pendentes", pending),
+          statCard("Tarefas concluídas", completed),
+          statCard("Estudo hoje", fmtMinutes(school + outside)),
+          statCard("Escola / fora", `${fmtMinutes(school)} / ${fmtMinutes(outside)}`)
+        ].join("");
+
+        const events = data.events.filter(item => item.date >= today())
+          .sort((a,b) => a.date.localeCompare(b.date)).slice(0,5);
+        $("#next-events").innerHTML = events.length ? events.map(item =>
+          `<div class="list-row"><span>${esc(item.title)}<br><small>${eventType(item.type)}</small></span><strong>${esc(item.date)}</strong></div>`
+        ).join("") : '<p class="empty">Nenhum compromisso próximo.</p>';
+
+        const tasks = data.tasks.filter(task => !task.done).sort((a,b) => a.due.localeCompare(b.due)).slice(0,5);
+        $("#pending-tasks").innerHTML = tasks.length ? tasks.map(task =>
+          `<div class="list-row"><span>${esc(task.title)}<br><small>${esc(task.subject)}</small></span><strong>${esc(task.due)}</strong></div>`
+        ).join("") : '<p class="empty">Nenhuma tarefa pendente.</p>';
+        drawDashboardChart();
+      }
+
+      function statCard(label, value) {
+        return `<article class="stat-card"><span>${esc(label)}</span><strong>${esc(value)}</strong></article>`;
+      }
+
+      function eventType(type) {
+        return ({ exam:"Prova", assignment:"Trabalho", appointment:"Compromisso" })[type] || "Compromisso";
+      }
+
+      function taskRender() {
+        const query = $("#task-search").value.trim().toLowerCase();
+        const status = $("#task-filter").value;
+        const priority = $("#priority-filter").value;
+        const tasks = data.tasks.filter(task => {
+          const matches = `${task.title} ${task.subject}`.toLowerCase().includes(query);
+          const matchesStatus = status === "all" || (status === "done" ? task.done : !task.done);
+          return matches && matchesStatus && (priority === "all" || task.priority === priority);
+        }).sort((a,b) => Number(a.done) - Number(b.done) || a.due.localeCompare(b.due));
+
+        $("#task-list").innerHTML = tasks.length ? tasks.map(task => `
+          <article class="task-row ${task.done ? "done" : ""}">
+            <input type="checkbox" aria-label="Marcar tarefa como concluída" data-action="toggle-task" data-id="${esc(task.id)}" ${task.done ? "checked" : ""}>
+            <div><div class="task-title">${esc(task.title)}</div><small class="muted">${esc(task.subject)} · Prazo: ${esc(task.due)}</small></div>
+            <span class="tag ${esc(task.priority)}">${task.priority === "high" ? "Alta" : task.priority === "medium" ? "Média" : "Baixa"}</span>
+            <div class="task-actions"><button class="btn btn-secondary" data-action="edit-task" data-id="${esc(task.id)}">Editar</button><button class="btn btn-danger" data-action="delete-task" data-id="${esc(task.id)}">Excluir</button></div>
+          </article>
+        `).join("") : '<p class="empty">Nenhuma tarefa encontrada.</p>';
+      }
+
+      function openTask(task) {
+        $("#task-form").reset();
+        $("#task-id").value = task?.id || "";
+        $("#task-dialog-title").textContent = task ? "Editar tarefa" : "Nova tarefa";
+        $("#task-title").value = task?.title || "";
+        $("#task-subject").value = task?.subject || "";
+        $("#task-due").value = task?.due || today();
+        $("#task-priority").value = task?.priority || "medium";
+        $("#task-dialog").showModal();
+      }
+
+      $("#new-task").addEventListener("click", () => openTask());
+      $("#task-form").addEventListener("submit", event => {
+        event.preventDefault();
+        const id = $("#task-id").value;
+        const existing = data.tasks.find(task => task.id === id);
+        const item = {
+          id: id || uid("task"),
+          title: $("#task-title").value.trim(),
+          subject: $("#task-subject").value.trim(),
+          due: $("#task-due").value,
+          priority: $("#task-priority").value,
+          done: existing?.done || false
+        };
+        if (!item.title || !item.subject || !item.due) return toast("Preencha todos os campos da tarefa.");
+        if (existing) Object.assign(existing, item); else data.tasks.push(item);
+        save(); $("#task-dialog").close(); taskRender(); renderDashboard(); renderStatistics();
+        toast(existing ? "Tarefa atualizada." : "Tarefa adicionada.");
+      });
+      $("#task-search").addEventListener("input", taskRender);
+      $("#task-filter").addEventListener("change", taskRender);
+      $("#priority-filter").addEventListener("change", taskRender);
+
+      $("#task-list").addEventListener("click", event => {
+        const button = event.target.closest("[data-action]");
+        if (!button) return;
+        const task = data.tasks.find(item => item.id === button.dataset.id);
+        if (!task) return;
+        if (button.dataset.action === "edit-task") openTask(task);
+        if (button.dataset.action === "delete-task") {
+          if (confirm(`Excluir a tarefa “${task.title}”?`)) {
+            data.tasks = data.tasks.filter(item => item.id !== task.id);
+            save(); taskRender(); renderDashboard(); renderStatistics(); toast("Tarefa excluída.");
+          }
+        }
+      });
+      $("#task-list").addEventListener("change", event => {
+        const checkbox = event.target.closest('[data-action="toggle-task"]');
+        if (!checkbox) return;
+        const task = data.tasks.find(item => item.id === checkbox.dataset.id);
+        if (task) { task.done = checkbox.checked; save(); taskRender(); renderDashboard(); renderStatistics(); }
+      });
+
+      let calendarDate = new Date();
+      function renderCalendar() {
+        const year = calendarDate.getFullYear();
+        const month = calendarDate.getMonth();
+        $("#month-title").textContent = new Intl.DateTimeFormat("pt-BR", {month:"long",year:"numeric"}).format(calendarDate);
+        const firstDay = new Date(year, month, 1);
+        const start = new Date(year, month, 1 - firstDay.getDay());
+        let html = "";
+        for (let index = 0; index < 42; index++) {
+          const date = new Date(start);
+          date.setDate(start.getDate() + index);
+          const key = dateKey(date);
+          const events = data.events.filter(item => item.date === key);
+          html += `<button class="day-cell ${date.getMonth() !== month ? "outside" : ""} ${key === today() ? "today" : ""}" data-action="calendar-day" data-date="${key}">
+            <span class="day-number">${date.getDate()}</span>
+            ${events.map(item => `<span class="event-chip ${esc(item.type)}" data-action="edit-event" data-id="${esc(item.id)}" title="${esc(item.title)}">${esc(item.title)}</span>`).join("")}
+          </button>`;
+        }
+        $("#calendar-grid").innerHTML = html;
+      }
+      $("#month-prev").addEventListener("click", () => { calendarDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth()-1, 1); renderCalendar(); });
+      $("#month-next").addEventListener("click", () => { calendarDate = new Date(calendarDate.getFullYear(), calendarDate.getMonth()+1, 1); renderCalendar(); });
+      $("#new-event").addEventListener("click", () => openEvent());
+      $("#calendar-grid").addEventListener("click", event => {
+        const chip = event.target.closest('[data-action="edit-event"]');
+        if (chip) { event.stopPropagation(); const item = data.events.find(entry => entry.id === chip.dataset.id); if (item) openEvent(item); return; }
+        const day = event.target.closest('[data-action="calendar-day"]');
+        if (day) openEvent(null, day.dataset.date);
+      });
+
+      function openEvent(item = null, date = today()) {
+        $("#event-form").reset();
+        $("#event-id").value = item?.id || "";
+        $("#event-dialog-title").textContent = item ? "Editar compromisso" : "Novo compromisso";
+        $("#event-title").value = item?.title || "";
+        $("#event-date").value = item?.date || date;
+        $("#event-type").value = item?.type || "exam";
+        $("#event-description").value = item?.description || "";
+        $("#delete-event").hidden = !item;
+        $("#event-dialog").showModal();
+      }
+      $("#event-form").addEventListener("submit", event => {
+        event.preventDefault();
+        const id = $("#event-id").value;
+        const item = {
+          id: id || uid("event"), title: $("#event-title").value.trim(),
+          date: $("#event-date").value, type: $("#event-type").value,
+          description: $("#event-description").value.trim()
+        };
+        if (!item.title || !item.date) return toast("Informe o título e a data.");
+        const index = data.events.findIndex(entry => entry.id === id);
+        if (index >= 0) data.events[index] = item; else data.events.push(item);
+        save(); $("#event-dialog").close(); renderCalendar(); renderDashboard(); renderPlanner();
+        toast(index >= 0 ? "Compromisso atualizado." : "Compromisso adicionado.");
+      });
+      $("#delete-event").addEventListener("click", () => {
+        const id = $("#event-id").value;
+        if (!id || !confirm("Excluir este compromisso?")) return;
+        data.events = data.events.filter(item => item.id !== id);
+        save(); $("#event-dialog").close(); renderCalendar(); renderDashboard(); renderPlanner(); toast("Compromisso excluído.");
+      });
+
+      const dayNames = ["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+      function initRoutineDays() {
+        $("#school-days").innerHTML = dayNames.map((name, day) =>
+          `<label><input type="checkbox" value="${day}"> ${name}</label>`
+        ).join("");
+      }
+      function renderPeriods() {
+        $("#period-list").innerHTML = data.routine.periods.length ? data.routine.periods.map(period => `
+          <div class="period-row" data-id="${esc(period.id)}">
+            <label>Início<input type="time" class="period-start" value="${esc(period.start)}" required></label>
+            <label>Fim<input type="time" class="period-end" value="${esc(period.end)}" required></label>
+            <label>Matéria<input class="period-subject" maxlength="60" value="${esc(period.subject)}" placeholder="Ex.: Matemática"></label>
+            <label>Tipo<select class="period-kind">
+              <option value="class" ${period.kind === "class" ? "selected" : ""}>Aula</option>
+              <option value="break" ${period.kind === "break" ? "selected" : ""}>Intervalo/almoço</option>
+              <option value="free" ${period.kind === "free" ? "selected" : ""}>Horário livre</option>
+            </select></label>
+            <button type="button" class="icon-btn" data-action="remove-period" data-id="${esc(period.id)}" aria-label="Remover período">×</button>
+          </div>
+        `).join("") : '<p class="empty">Nenhum período cadastrado.</p>';
+        renderRoutineSummary();
+      }
+      function loadRoutineForm() {
+        $("#school-type").value = data.routine.type;
+        $("#school-entry").value = data.routine.entry;
+        $("#school-exit").value = data.routine.exit;
+        $$("#school-days input").forEach(input => input.checked = data.routine.days.includes(Number(input.value)));
+        renderPeriods();
+      }
+      function renderRoutineSummary() {
+        const perDay = data.routine.periods.filter(item => item.kind === "class")
+          .reduce((sum, item) => sum + Math.max(0, timeMinutes(item.end)-timeMinutes(item.start)), 0);
+        $("#routine-summary").textContent = `Aulas cadastradas: ${fmtMinutes(perDay)} por dia × ${data.routine.days.length} dias por semana.`;
+      }
+      $("#add-period").addEventListener("click", () => {
+        const last = [...data.routine.periods].sort((a,b) => a.start.localeCompare(b.start)).at(-1);
+        const start = last?.end || data.routine.entry || "08:00";
+        const endMinutes = Math.min(timeMinutes(start) + 50, 23 * 60 + 59);
+        const end = `${pad(Math.floor(endMinutes/60))}:${pad(endMinutes%60)}`;
+        data.routine.periods.push({ id:uid("period"), start, end, subject:"", kind:"class" });
+        renderPeriods();
+      });
+      $("#period-list").addEventListener("click", event => {
+        const remove = event.target.closest('[data-action="remove-period"]');
+        if (!remove) return;
+        data.routine.periods = data.routine.periods.filter(item => item.id !== remove.dataset.id);
+        renderPeriods();
+      });
+      $("#routine-form").addEventListener("submit", event => {
+        event.preventDefault();
+        const entry = $("#school-entry").value;
+        const exit = $("#school-exit").value;
+        if (timeMinutes(exit) <= timeMinutes(entry)) return toast("A saída deve ser posterior à entrada.");
+        const periods = $$(".period-row", $("#period-list")).map(row => ({
+          id: row.dataset.id,
+          start: $(".period-start", row).value,
+          end: $(".period-end", row).value,
+          subject: $(".period-subject", row).value.trim(),
+          kind: $(".period-kind", row).value
+        })).sort((a,b) => a.start.localeCompare(b.start));
+
+        for (let index = 0; index < periods.length; index++) {
+          const item = periods[index];
+          if (!item.start || !item.end || timeMinutes(item.end) <= timeMinutes(item.start)) {
+            return toast("Verifique os horários dos períodos.");
+          }
+          if (timeMinutes(item.start) < timeMinutes(entry) || timeMinutes(item.end) > timeMinutes(exit)) {
+            return toast("Os períodos precisam ficar dentro do horário de entrada e saída.");
+          }
+          if (item.kind === "class" && !item.subject) return toast("Informe a matéria de cada aula.");
+          if (index > 0 && timeMinutes(item.start) < timeMinutes(periods[index-1].end)) {
+            return toast("Há períodos sobrepostos. Ajuste a grade antes de salvar.");
+          }
+        }
+
+        // Preserva o total já transcorrido hoje ao alterar a rotina.
+        if (!Object.prototype.hasOwnProperty.call(data.schoolSnapshots, today())) {
+          data.schoolSnapshots[today()] = schoolMinutes(today());
+        }
+        data.routine = {
+          type: $("#school-type").value, entry, exit,
+          days: $$("#school-days input:checked").map(input => Number(input.value)),
+          periods
+        };
+        save(); loadRoutineForm(); renderDashboard(); renderStatistics(); renderPlanner();
+        toast("Rotina escolar salva.");
+      });
+
+      function planConflicts(plan, excludingId = "") {
+        const day = Number(plan.day);
+        const start = timeMinutes(plan.time);
+        const end = start + Number(plan.duration);
+        const routine = data.routine;
+        if (routine.days.includes(day)) {
+          const schoolStart = timeMinutes(routine.entry);
+          const schoolEnd = timeMinutes(routine.exit);
+          if (start < schoolEnd && end > schoolStart) return "conflito com horário escolar";
+        }
+        const planConflict = data.plans.some(other => other.id !== excludingId &&
+          Number(other.day) === day && start < timeMinutes(other.time) + Number(other.duration) &&
+          end > timeMinutes(other.time));
+        if (planConflict) return "conflito com outro estudo";
+        // Compromissos sem horário cadastrado bloqueiam o dia correspondente.
+        const eventConflict = data.events.some(item => item.date >= today() &&
+          localDate(item.date).getDay() === day);
+        if (eventConflict) return "há um compromisso cadastrado nesse dia";
+        return "";
+      }
+
+      function renderPlanner() {
+        $("#planner-grid").innerHTML = dayNames.map((name, day) => {
+          const plans = data.plans.filter(item => Number(item.day) === day).sort((a,b) => a.time.localeCompare(b.time));
+          return `<div class="planner-day"><h3>${name}</h3>${plans.length ? plans.map(plan => {
+            const conflict = planConflicts(plan, plan.id);
+            return `<div class="plan-item ${conflict ? "conflict" : ""}" title="${conflict ? esc(conflict) : "Horário disponível"}">
+              <button data-action="delete-plan" data-id="${esc(plan.id)}" aria-label="Excluir estudo">×</button>
+              <strong>${esc(plan.subject)}</strong><br>${esc(plan.time)} · ${Number(plan.duration)} min
+              ${conflict ? `<br><small>${esc(conflict)}</small>` : ""}
+            </div>`;
+          }).join("") : '<small class="muted">Sem estudos planejados</small>'}</div>`;
+        }).join("");
+      }
+      $("#new-plan").addEventListener("click", () => { $("#plan-form").reset(); $("#plan-dialog").showModal(); });
+      $("#plan-form").addEventListener("submit", event => {
+        event.preventDefault();
+        const plan = {
+          id: uid("plan"), subject: $("#plan-subject").value.trim(),
+          day: Number($("#plan-day").value), time: $("#plan-time").value,
+          duration: Number($("#plan-duration").value)
+        };
+        if (!plan.subject || !plan.time || plan.duration < 15 || plan.duration > 360) return toast("Confira os dados do estudo.");
+        const conflict = planConflicts(plan);
+        if (conflict) return toast(`Horário não disponível: ${conflict}.`);
+        data.plans.push(plan); save(); $("#plan-dialog").close(); renderPlanner(); toast("Estudo adicionado ao cronograma.");
+      });
+      $("#planner-grid").addEventListener("click", event => {
+        const button = event.target.closest('[data-action="delete-plan"]');
+        if (!button || !confirm("Excluir este horário do cronograma?")) return;
+        data.plans = data.plans.filter(item => item.id !== button.dataset.id);
+        save(); renderPlanner();
+      });
+
+      function addStudyRecord({ subject, minutes, source = "manual", startTime = "" }) {
+        const cleanSubject = subject.trim();
+        const amount = Number(minutes);
+        if (!cleanSubject || !Number.isFinite(amount) || amount <= 0) return false;
+        if (source === "manual" && data.records.some(record =>
+          record.date === today() && record.location === "outside" &&
+          record.source === source && record.subject.toLowerCase() === cleanSubject.toLowerCase() &&
+          record.minutes === amount && record.startTime === startTime
+        )) {
+          toast("Este registro já foi adicionado.");
+          return false;
+        }
+        data.records.push({
+          id: uid("study"), date: today(), subject: cleanSubject,
+          minutes: Math.round(amount), location: "outside", source, startTime
+        });
+        save(); renderDashboard(); renderStatistics(); renderHistory();
+        return true;
+      }
+
+      $("#manual-form").addEventListener("submit", event => {
+        event.preventDefault();
+        const success = addStudyRecord({
+          subject: $("#manual-subject").value,
+          minutes: $("#manual-minutes").value,
+          source: "manual",
+          startTime: new Date().toTimeString().slice(0,5)
+        });
+        if (success) { $("#manual-form").reset(); toast("Tempo de estudo registrado."); }
+      });
+
+      function renderHistory() {
+        const records = [...data.records].sort((a,b) => b.date.localeCompare(a.date)).slice(0,8);
+        $("#study-history").innerHTML = records.length ? records.map(record =>
+          `<div class="list-row history-row"><span>${esc(record.subject)}<br><small>${esc(record.date)} · ${record.source === "pomodoro" ? "Pomodoro" : "Manual"}</small></span><strong>${fmtMinutes(record.minutes)}</strong></div>`
+        ).join("") : '<p class="empty">Ainda não há registros de estudo fora da escola.</p>';
+      }
+
+      const timer = { mode:"focus", remaining:0, total:0, running:false, interval:null, completed:0 };
+      function timerDuration(mode) {
+        if (mode === "focus") return Number(data.pomodoro.focus);
+        if (mode === "long") return Number(data.pomodoro.longRest);
+        return Number(data.pomodoro.rest);
+      }
+      function setTimerMode(mode) {
+        timer.mode = mode;
+        timer.total = timerDuration(mode) * 60;
+        timer.remaining = timer.total;
+        renderTimer();
+      }
+      function renderTimer() {
+        const mins = Math.floor(timer.remaining / 60);
+        const secs = timer.remaining % 60;
+        $("#timer-display").textContent = `${pad(mins)}:${pad(secs)}`;
+        $("#timer-mode").textContent = timer.mode === "focus" ? "Concentração" : timer.mode === "long" ? "Pausa longa" : "Descanso";
+        $("#timer-progress").style.width = `${timer.total ? ((timer.total - timer.remaining) / timer.total) * 100 : 0}%`;
+        $("#timer-start").disabled = timer.running;
+        $("#timer-pause").disabled = !timer.running;
+        $("#session-count").textContent = `${data.pomodoroSessions} sessão${data.pomodoroSessions === 1 ? "" : "ões"} de foco concluída${data.pomodoroSessions === 1 ? "" : "s"} no total`;
+      }
+      function pauseTimer() {
+        clearInterval(timer.interval);
+        timer.running = false;
+        renderTimer();
+      }
+      function timerComplete() {
+        pauseTimer();
+        if (timer.mode === "focus") {
+          const subject = $("#pomodoro-subject").value.trim() || "Estudo geral";
+          const start = new Date(Date.now() - Number(data.pomodoro.focus) * 60000).toTimeString().slice(0,5);
+          data.pomodoroSessions += 1;
+          addStudyRecord({ subject, minutes:data.pomodoro.focus, source:"pomodoro", startTime:start });
+          setTimerMode(data.pomodoroSessions % 4 === 0 ? "long" : "break");
+          toast(timer.mode === "long" ? "Sessão concluída. Hora da pausa longa!" : "Sessão concluída. Hora de descansar!");
+        } else {
+          setTimerMode("focus");
+          toast("Pausa concluída. Pronto para mais uma sessão?");
+        }
+        save(); renderTimer(); renderDashboard(); renderStatistics();
+      }
+      $("#timer-start").addEventListener("click", () => {
+        if (timer.running) return;
+        timer.running = true;
+        timer.interval = setInterval(() => {
+          timer.remaining -= 1;
+          if (timer.remaining <= 0) { timer.remaining = 0; renderTimer(); timerComplete(); }
+          else renderTimer();
+        }, 1000);
+        renderTimer();
+      });
+      $("#timer-pause").addEventListener("click", pauseTimer);
+      $("#timer-reset").addEventListener("click", () => { pauseTimer(); setTimerMode(timer.mode); });
+      $("#pomodoro-subject").addEventListener("change", event => {
+        event.target.value = event.target.value.slice(0,60);
+      });
+
+      function renderStatistics() {
+        const records = data.records;
+        const outside = records.reduce((sum, record) => sum + Number(record.minutes || 0), 0);
+        const school = Object.keys(data.schoolSnapshots).reduce((sum, key) => sum + Number(data.schoolSnapshots[key] || 0), 0);
+        const allTime = outside + school;
+        const completed = data.tasks.filter(task => task.done).length;
+        const weekStart = new Date();
+        weekStart.setDate(weekStart.getDate() - 6);
+        let weekMinutes = 0;
+        for (let i=0; i<7; i++) {
+          const date = new Date(weekStart);
+          date.setDate(weekStart.getDate()+i);
+          weekMinutes += allStudyMinutes(dateKey(date));
+        }
+        $("#statistics-stats").innerHTML = [
+          statCard("Tempo acadêmico total", fmtMinutes(allTime + currentUnstoredSchool())),
+          statCard("Estudo fora da escola", fmtMinutes(outside)),
+          statCard("Estudo escolar registrado", fmtMinutes(school)),
+          statCard("Tarefas concluídas", completed)
+        ].join("");
+        // Exibe o total dos últimos sete dias como informação adicional sem inventar registros.
+        $("#statistics-stats").insertAdjacentHTML("beforeend", statCard("Estudo · últimos 7 dias", fmtMinutes(weekMinutes)));
+        drawDailyChart();
+        drawSubjectChart();
+      }
+
+      function currentUnstoredSchool() {
+        return Object.prototype.hasOwnProperty.call(data.schoolSnapshots, today()) ? 0 : schoolMinutes(today());
+      }
+
+      function chartCanvas(id) {
+        const canvas = document.getElementById(id);
+        if (!canvas) return null;
+        const rect = canvas.getBoundingClientRect();
+        const ratio = window.devicePixelRatio || 1;
+        const width = Math.max(280, Math.floor(rect.width));
+        const height = 240;
+        canvas.width = width * ratio;
+        canvas.height = height * ratio;
+        const context = canvas.getContext("2d");
+        context.setTransform(ratio,0,0,ratio,0,0);
+        context.clearRect(0,0,width,height);
+        return { canvas, context, width, height };
+      }
+
+      function chartColors() {
+        const style = getComputedStyle(document.documentElement);
+        return { text:style.getPropertyValue("--muted").trim(), grid:style.getPropertyValue("--border").trim(),
+          blue:style.getPropertyValue("--blue").trim(), light:style.getPropertyValue("--blue-light").trim(),
+          surface:style.getPropertyValue("--surface").trim() };
+      }
+
+      function drawBars(id, labels, firstValues, secondValues = null) {
+        const chart = chartCanvas(id);
+        if (!chart) return;
+        const {context:ctx,width,height} = chart;
+        const colors = chartColors();
+        const left=42, right=12, top=18, bottom=38;
+        const plotW=width-left-right, plotH=height-top-bottom;
+        const maxValue=Math.max(10,...firstValues.map((value,i)=>value+(secondValues?.[i]||0)));
+        ctx.font="11px system-ui";
+        ctx.strokeStyle=colors.grid;
+        ctx.fillStyle=colors.text;
+        ctx.lineWidth=1;
+        for (let i=0;i<=4;i++) {
+          const y=top+plotH*i/4;
+          ctx.beginPath(); ctx.moveTo(left,y); ctx.lineTo(width-right,y); ctx.stroke();
+          ctx.textAlign="right";
+          ctx.fillText(String(Math.round(maxValue*(4-i)/4)),left-7,y+4);
+        }
+        const slot=plotW/Math.max(1,labels.length);
+        const barW=Math.min(32,slot*.58);
+        labels.forEach((label,i) => {
+          const x=left+slot*i+(slot-barW)/2;
+          const h1=firstValues[i]/maxValue*plotH;
+          const h2=(secondValues?.[i]||0)/maxValue*plotH;
+          ctx.fillStyle=colors.blue;
+          ctx.fillRect(x,top+plotH-h1,barW,h1);
+          if (secondValues) {
+            ctx.fillStyle=colors.light;
+            ctx.fillRect(x,top+plotH-h1-h2,barW,h2);
+          }
+          ctx.fillStyle=colors.text;
+          ctx.textAlign="center";
+          ctx.fillText(label,x+barW/2,height-13);
+        });
+        if (secondValues) {
+          ctx.textAlign="left";
+          ctx.fillStyle=colors.blue; ctx.fillRect(left,4,9,9);
+          ctx.fillStyle=colors.text; ctx.fillText("Escola",left+13,13);
+          ctx.fillStyle=colors.light; ctx.fillRect(left+67,4,9,9);
+          ctx.fillStyle=colors.text; ctx.fillText("Fora da escola",left+80,13);
+        }
+      }
+
+      function lastSeven() {
+        const labels=[], school=[], outside=[];
+        const base=new Date();
+        for (let i=6;i>=0;i--) {
+          const date=new Date(base); date.setDate(base.getDate()-i);
+          const key=dateKey(date);
+          labels.push(new Intl.DateTimeFormat("pt-BR",{weekday:"short"}).format(date).replace(".",""));
+          school.push(schoolMinutes(key)); outside.push(outsideMinutes(key));
+        }
+        return {labels,school,outside};
+      }
+      function drawDashboardChart() {
+        const values=lastSeven();
+        drawBars("dashboard-chart",values.labels,values.school,values.outside);
+      }
+      function drawDailyChart() {
+        const values=lastSeven();
+        drawBars("daily-chart",values.labels,values.school.map((v,i)=>v+values.outside[i]));
+      }
+      function drawSubjectChart() {
+        const chart=chartCanvas("subject-chart");
+        if (!chart) return;
+        const {context:ctx,width,height}=chart;
+        const colors=chartColors();
+        const totals={};
+        data.records.forEach(record => { totals[record.subject]=(totals[record.subject]||0)+Number(record.minutes||0); });
+        const entries=Object.entries(totals).sort((a,b)=>b[1]-a[1]).slice(0,8);
+        if (!entries.length) {
+          ctx.fillStyle=colors.text; ctx.font="14px system-ui"; ctx.textAlign="center";
+          ctx.fillText("Ainda não há registros por matéria.",width/2,height/2);
+          return;
+        }
+        const max=Math.max(...entries.map(item=>item[1]));
+        const palette=["#2563eb","#60a5fa","#7c3aed","#16a34a","#d97706","#db4b74","#0891b2","#64748b"];
+        entries.forEach(([name,value],index) => {
+          const y=18+index*26;
+          const label=String(name).length>20 ? `${String(name).slice(0,18)}…` : String(name);
+          ctx.font="11px system-ui"; ctx.textAlign="left"; ctx.fillStyle=colors.text;
+          ctx.fillText(label,0,y+12);
+          const x=140, maxW=Math.max(30,width-x-65), barW=value/max*maxW;
+          ctx.fillStyle=colors.grid; ctx.fillRect(x,y,maxW,13);
+          ctx.fillStyle=palette[index%palette.length]; ctx.fillRect(x,y,barW,13);
+          ctx.fillStyle=colors.text; ctx.textAlign="right";
+          ctx.fillText(fmtMinutes(value),width,y+12);
+        });
+      }
+      function drawAllCharts() {
+        drawDashboardChart();
+        drawDailyChart();
+        drawSubjectChart();
+      }
+      window.addEventListener("resize", () => {
+        clearTimeout(window.chartResizeTimer);
+        window.chartResizeTimer = setTimeout(drawAllCharts,150);
+      });
+
+      $("#profile-form").addEventListener("submit", event => {
+        event.preventDefault();
+        data.profile.name = $("#display-name").value.trim();
+        data.profile.theme = $("#theme-select").value;
+        applyTheme(data.profile.theme); save(); renderDashboard(); drawAllCharts(); toast("Preferências salvas.");
+      });
+      $("#pomodoro-settings").addEventListener("submit", event => {
+        event.preventDefault();
+        const focus=Number($("#focus-min").value), rest=Number($("#break-min").value), longRest=Number($("#long-break-min").value);
+        if (![focus,rest,longRest].every(Number.isFinite) || focus<1 || focus>180 || rest<1 || rest>60 || longRest<1 || longRest>120) {
+          return toast("Informe tempos válidos para o Pomodoro.");
+        }
+        data.pomodoro={focus,rest,longRest};
+        save();
+        if (!timer.running) setTimerMode(timer.mode);
+        toast("Tempos do Pomodoro atualizados.");
+      });
+
+      $("#export-data").addEventListener("click", () => {
+        const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href=url; link.download=`studyflow-backup-${today()}.json`;
+        document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+        toast("Backup exportado.");
+      });
+      $("#import-data").addEventListener("change", async event => {
+        const file=event.target.files?.[0];
+        if (!file) return;
+        try {
+          const parsed=JSON.parse(await file.text());
+          const valid=parsed && typeof parsed==="object" &&
+            ["tasks","events","plans","records"].every(key=>Array.isArray(parsed[key]));
+          if (!valid) throw new Error("Formato inválido");
+          if (!confirm("Importar este backup substituirá os dados atuais. Continuar?")) return;
+          const base=defaults();
+          data={
+            ...base,...parsed,
+            profile:{...base.profile,...(parsed.profile||{})},
+            pomodoro:{...base.pomodoro,...(parsed.pomodoro||{})},
+            routine:{...base.routine,...(parsed.routine||{})},
+            schoolSnapshots:parsed.schoolSnapshots && typeof parsed.schoolSnapshots==="object" ? parsed.schoolSnapshots : {}
+          };
+          save(); initializeForms(); renderAll(); toast("Backup importado.");
+        } catch (error) {
+          console.error(error);
+          toast("Arquivo JSON inválido ou incompatível.");
+        } finally {
+          event.target.value="";
+        }
+      });
+
+      function initializeForms() {
+        $("#display-name").value=data.profile.name||"";
+        $("#theme-select").value=data.profile.theme||"light";
+        $("#focus-min").value=data.pomodoro.focus;
+        $("#break-min").value=data.pomodoro.rest;
+        $("#long-break-min").value=data.pomodoro.longRest;
+        loadRoutineForm();
+      }
+
+      function renderAll() {
+        taskRender(); renderCalendar(); renderPlanner(); renderHistory();
+        renderDashboard(); renderStatistics(); renderTimer();
+      }
+      function initialize() {
+        applyTheme(data.profile.theme);
+        initRoutineDays();
+        initializeForms();
+        $("#school-days").addEventListener("change", () => {}); // Mantém a seleção acessível até salvar a rotina.
+        setTimerMode("focus");
+        renderAll();
+      }
+
+      initialize();
+    })();
+  </script>
+</body>
+</html>
