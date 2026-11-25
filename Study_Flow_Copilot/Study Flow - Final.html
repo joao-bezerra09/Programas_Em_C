@@ -1,0 +1,946 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>StudyFlow</title>
+<style>
+:root{
+  --navy:#101827;--primary:#2563eb;--blue:#60a5fa;--bg:#f3f6fb;
+  --surface:#fff;--text:#172033;--muted:#6b7280;--border:#dde5ef;
+  --danger:#dc2626;--warning:#d97706;--shadow:0 8px 24px rgba(16,24,39,.08)
+}
+[data-theme="dark"]{
+  --bg:#0b1220;--surface:#111b2d;--text:#edf4ff;--muted:#9ba9bd;
+  --border:#26344a;--navy:#080d16;--shadow:0 8px 24px rgba(0,0,0,.25)
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+button,input,select,textarea{font:inherit}
+button{cursor:pointer}
+.sidebar{position:fixed;inset:0 auto 0 0;width:235px;padding:22px 14px;background:var(--navy);color:#fff;z-index:30;transition:transform .2s}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 8px 24px;color:#fff;text-decoration:none;font-size:20px;font-weight:800}
+.brand-mark{display:grid;width:38px;height:38px;place-items:center;border-radius:11px;background:var(--primary)}
+.nav{display:grid;gap:5px}
+.nav-item{width:100%;padding:11px 13px;border:0;border-radius:9px;background:none;color:#b9c5d7;text-align:left}
+.nav-item:hover,.nav-item.active{background:rgba(96,165,250,.16);color:#fff}
+.main{min-height:100vh;margin-left:235px}
+.topbar{position:sticky;top:0;height:68px;padding:0 26px;display:flex;align-items:center;justify-content:space-between;background:var(--surface);border-bottom:1px solid var(--border);z-index:20}
+.topbar-group{display:flex;align-items:center;gap:12px}
+.page{display:none;padding:26px 28px 44px}
+.page.active{display:block;animation:fade .18s ease}
+@keyframes fade{from{opacity:.5;transform:translateY(3px)}to{opacity:1;transform:none}}
+.heading,.card-header,.calendar-toolbar,.dialog-header,.dialog-actions,.button-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.heading{margin-bottom:20px}
+.heading h1{margin:3px 0 0}
+.eyebrow{margin:0;color:var(--muted);font-size:13px}
+.card,.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow)}
+.card{padding:19px}
+.card h2{margin:0 0 14px;font-size:17px}
+.card-header h2{margin:0}
+.stats-grid,.dashboard-grid,.settings-grid{display:grid;gap:15px}
+.stats-grid{grid-template-columns:repeat(4,minmax(0,1fr));margin-bottom:15px}
+.dashboard-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+.wide{grid-column:1/-1}
+.stat-card{padding:17px;min-width:0}
+.stat-card span{color:var(--muted);font-size:13px}
+.stat-card strong{display:block;margin-top:7px;font-size:23px;overflow-wrap:anywhere}
+.primary-button,.secondary-button,.text-button,.icon-button{min-height:40px;border-radius:9px}
+.primary-button{padding:9px 15px;border:0;background:var(--primary);color:white;font-weight:700}
+.primary-button:hover{background:#1d4ed8}
+.secondary-button{padding:8px 13px;border:1px solid var(--border);background:var(--surface);color:var(--primary)}
+.text-button{padding:6px;border:0;background:none;color:var(--primary)}
+.icon-button{width:40px;display:grid;place-items:center;border:1px solid var(--border);background:var(--surface);color:var(--text);font-size:18px}
+input,select,textarea{width:100%;min-height:41px;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text)}
+input:focus,select:focus,textarea:focus{outline:2px solid rgba(37,99,235,.2);border-color:var(--primary)}
+label{display:grid;gap:6px;color:var(--muted);font-size:13px}
+.form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.toolbar{display:flex;gap:9px;margin-bottom:14px}
+.toolbar input{flex:1}
+.toolbar select{max-width:210px}
+.list,.task-list{display:grid;gap:8px}
+.list-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.list-item:last-child{border-bottom:0}
+.task-item,.urgent-row{display:grid;align-items:center;gap:11px;padding:12px;background:var(--surface);border:1px solid var(--border);border-radius:11px}
+.task-item{grid-template-columns:auto minmax(0,1fr) auto auto}
+.task-item.done .task-name{text-decoration:line-through;color:var(--muted)}
+.task-item input[type=checkbox],.check-row input{width:auto;min-height:auto;accent-color:var(--primary)}
+.task-actions{display:flex;gap:5px}
+.priority,.urgent-label{width:fit-content;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:750}
+.priority.high,.urgent-label.overdue{background:#fee2e2;color:#b91c1c}
+.priority.medium{background:#fef3c7;color:#92400e}
+.priority.low{background:#dcfce7;color:#166534}
+.urgent-card{margin-bottom:14px;border-color:#fecaca}
+.urgent-row{grid-template-columns:minmax(0,1fr) auto auto;border-left:4px solid var(--warning)}
+.urgent-row.overdue{border-left-color:var(--danger)}
+.urgent-row small{display:block;margin-top:3px;color:var(--muted)}
+.urgent-label{border-radius:5px;background:#fef3c7;color:#92400e}
+.urgent-label.overdue{background:#fee2e2;color:#b91c1c}
+.calendar-weekdays,.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.calendar-weekdays span{text-align:center;padding:8px;color:var(--muted);font-size:12px}
+.calendar-day{min-height:104px;padding:6px;border:0;border-top:1px solid var(--border);border-right:1px solid var(--border);background:transparent;color:var(--text);text-align:left;vertical-align:top}
+.calendar-day:nth-child(7n+1){border-left:1px solid var(--border)}
+.calendar-day.outside{opacity:.45}
+.calendar-day.today{background:rgba(37,99,235,.07)}
+.event-chip{display:block;width:100%;margin-top:4px;padding:3px 5px;border:0;border-radius:4px;color:#fff;text-align:left;font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.event-chip.exam{background:#dc2626}
+.event-chip.assignment{background:#2563eb}
+.event-chip.appointment{background:#7c3aed}
+.check-row{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 16px}
+.check-row label{display:flex;align-items:center;gap:6px;padding:7px 9px;border:1px solid var(--border);border-radius:8px;color:var(--text)}
+.fixed-break-box{margin:18px 0;padding:15px;border:1px solid var(--border);border-radius:10px;background:var(--bg)}
+.fixed-break-box h3{margin:0 0 5px}
+.fixed-break-box .form-grid{margin:12px 0}
+.period-row{display:grid;grid-template-columns:1fr 1fr 1fr 1.5fr 1fr auto;gap:8px;align-items:end;margin:10px 0}
+.period-row label{font-size:12px}
+.planner-grid{display:grid;grid-template-columns:repeat(7,minmax(125px,1fr));gap:8px;overflow-x:auto}
+.planner-day{min-height:190px;padding:9px;border:1px solid var(--border);border-radius:9px}
+.planner-day h3{margin:0 0 9px;font-size:13px}
+.plan-item{margin:6px 0;padding:7px;border-left:3px solid var(--primary);border-radius:6px;background:rgba(37,99,235,.08);font-size:12px}
+.plan-item.conflict{border-left-color:var(--danger);background:rgba(220,38,38,.1)}
+.plan-item.conflict small{color:var(--danger);font-weight:700}
+.plan-item button{float:right;min-height:26px;width:28px}
+.pomodoro-layout{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(260px,.8fr);gap:15px}
+.timer-card{text-align:center}
+.timer{margin:12px 0;font-size:clamp(62px,12vw,108px);font-weight:800;letter-spacing:-3px}
+.timer-progress{max-width:500px;height:8px;margin:18px auto;border-radius:99px;background:var(--border);overflow:hidden}
+.timer-progress div{height:100%;width:0;background:var(--primary);transition:width .25s}
+.timer-actions{justify-content:center}
+.manual-study-card form,.settings-grid form{display:grid;gap:11px}
+.settings-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+dialog{width:min(520px,calc(100vw - 28px));padding:20px;border:1px solid var(--border);border-radius:14px;background:var(--surface);color:var(--text);box-shadow:0 18px 60px rgba(0,0,0,.25)}
+dialog::backdrop{background:rgba(9,14,25,.55)}
+dialog form{display:grid;gap:13px}
+.dialog-header h2{margin:0}
+.dialog-actions{justify-content:flex-end}
+.toast{position:fixed;right:20px;bottom:20px;z-index:60;padding:12px 16px;border-radius:9px;background:var(--navy);color:#fff;opacity:0;transform:translateY(8px);transition:.2s;pointer-events:none}
+.toast.show{opacity:1;transform:none}
+canvas{display:block;width:100%;height:240px}
+.menu-toggle{display:none}
+@media(max-width:980px){
+ .sidebar{transform:translateX(-100%)}
+ .sidebar.open{transform:none;box-shadow:10px 0 28px #0003}
+ .main{margin-left:0}.menu-toggle{display:grid}
+ .stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .settings-grid{grid-template-columns:1fr}
+}
+@media(max-width:680px){
+ .topbar{height:60px;padding:0 13px}
+ .page{padding:19px 13px 35px}
+ .dashboard-grid,.stats-grid,.pomodoro-layout{grid-template-columns:1fr}
+ .wide{grid-column:auto}
+ .toolbar{display:grid}
+ .toolbar select{max-width:none}
+ .task-item{grid-template-columns:auto minmax(0,1fr) auto}
+ .task-item .priority{grid-column:2}
+ .task-actions{grid-column:3;grid-row:1/3;flex-direction:column}
+ .urgent-row{grid-template-columns:minmax(0,1fr) auto}
+ .urgent-label{grid-column:1/-1}
+ .calendar-day{min-height:68px;padding:4px}
+ .event-chip{font-size:9px;padding:2px}
+ .form-grid{grid-template-columns:1fr}
+ .period-row{grid-template-columns:1fr 1fr}
+ .period-row button{justify-self:end}
+}
+</style>
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+  <a class="brand" href="#" data-page="dashboard"><span class="brand-mark">SF</span>StudyFlow</a>
+  <nav class="nav" aria-label="Navegação">
+    <button class="nav-item active" data-page="dashboard">⌂ Dashboard</button>
+    <button class="nav-item" data-page="tasks">✓ Tarefas</button>
+    <button class="nav-item" data-page="calendar">▦ Calendário</button>
+    <button class="nav-item" data-page="routine">◷ Rotina escolar</button>
+    <button class="nav-item" data-page="planner">☷ Cronograma</button>
+    <button class="nav-item" data-page="pomodoro">● Pomodoro</button>
+    <button class="nav-item" data-page="statistics">▥ Estatísticas</button>
+    <button class="nav-item" data-page="settings">⚙ Configurações</button>
+  </nav>
+</aside>
+
+<main class="main">
+<header class="topbar">
+  <div class="topbar-group"><button id="menu-toggle" class="icon-button menu-toggle" aria-label="Abrir menu">☰</button><strong id="topbar-title">Dashboard</strong></div>
+  <button id="theme-toggle" class="icon-button" aria-label="Alternar tema">☾</button>
+</header>
+
+<section id="dashboard" class="page active">
+  <div class="heading"><div><p class="eyebrow">Sua jornada de estudos</p><h1 id="greeting">Olá!</h1></div></div>
+  <div class="stats-grid" id="dashboard-stats"></div>
+  <div class="dashboard-grid">
+    <article class="card"><div class="card-header"><h2>Próximos compromissos</h2><button class="text-button" data-page="calendar">Ver calendário</button></div><div id="next-events" class="list"></div></article>
+    <article class="card"><div class="card-header"><h2>Tarefas pendentes</h2><button class="text-button" data-page="tasks">Ver todas</button></div><div id="pending-tasks" class="list"></div></article>
+    <article class="card wide urgent-card"><div class="card-header"><h2>Atrasadas e urgentes</h2><button class="text-button" data-page="tasks">Ver atividades</button></div><div id="dashboard-urgent" class="list"></div></article>
+    <article class="card wide"><h2>Estudo nos últimos 7 dias</h2><canvas id="dashboard-chart"></canvas></article>
+  </div>
+</section>
+
+<section id="tasks" class="page">
+  <div class="heading"><div><p class="eyebrow">Organização</p><h1>Gerenciador de tarefas</h1></div><button class="primary-button" id="new-task">+ Nova tarefa</button></div>
+  <div class="toolbar"><input id="task-search" type="search" placeholder="Pesquisar tarefas"><select id="task-status"><option value="all">Todas</option><option value="pending">Pendentes</option><option value="done">Concluídas</option></select><select id="task-priority-filter"><option value="all">Todas as prioridades</option><option value="high">Alta</option><option value="medium">Média</option><option value="low">Baixa</option></select></div>
+  <article class="card urgent-card"><div class="card-header"><h2>Atrasadas e urgentes</h2><span class="eyebrow">Vencidas ou prioridade alta próxima</span></div><div id="tasks-urgent" class="list"></div></article>
+  <div id="task-list" class="task-list"></div>
+</section>
+
+<section id="calendar" class="page">
+  <div class="heading"><div><p class="eyebrow">Planejamento acadêmico</p><h1>Calendário</h1></div><button class="primary-button" id="new-event">+ Novo compromisso</button></div>
+  <article class="card"><div class="calendar-toolbar"><button class="icon-button" id="month-prev">‹</button><h2 id="month-title"></h2><button class="icon-button" id="month-next">›</button></div><div class="calendar-weekdays"><span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span></div><div id="calendar-grid" class="calendar-grid"></div></article>
+</section>
+
+<section id="routine" class="page">
+  <div class="heading"><div><p class="eyebrow">Rotina Inteligente</p><h1>Rotina escolar</h1></div></div>
+  <article class="card">
+    <form id="routine-form">
+      <div class="form-grid">
+        <label>Tipo de ensino<select id="school-type"><option value="regular">Ensino regular</option><option value="integral">Ensino integral</option></select></label>
+        <label>Entrada<input id="school-entry" type="time" required></label>
+        <label>Saída<input id="school-exit" type="time" required></label>
+      </div>
+
+      <fieldset><legend>Dias de aula</legend><div class="check-row" id="school-days"></div></fieldset>
+
+      <div class="fixed-break-box">
+        <h3>Almoço e intervalos fixos</h3>
+        <p class="eyebrow">Selecione vários dias para repetir o mesmo horário semanalmente.</p>
+        <div class="check-row" id="fixed-break-days">
+          <label><input type="checkbox" value="1">Segunda</label>
+          <label><input type="checkbox" value="2">Terça</label>
+          <label><input type="checkbox" value="3">Quarta</label>
+          <label><input type="checkbox" value="4">Quinta</label>
+          <label><input type="checkbox" value="5">Sexta</label>
+          <label><input type="checkbox" value="6">Sábado</label>
+          <label><input type="checkbox" value="0">Domingo</label>
+        </div>
+        <div class="form-grid">
+          <label>Tipo<select id="fixed-break-type"><option value="Almoço">Almoço</option><option value="Intervalo">Intervalo</option></select></label>
+          <label>Início<input id="fixed-break-start" type="time" value="12:00"></label>
+          <label>Fim<input id="fixed-break-end" type="time" value="13:00"></label>
+        </div>
+        <button type="button" class="secondary-button" id="add-fixed-break">Adicionar aos dias selecionados</button>
+      </div>
+
+      <div class="card-header"><h2>Períodos por dia</h2><button type="button" class="secondary-button" id="add-period">+ Adicionar período</button></div>
+      <p class="eyebrow">Cada aula, intervalo ou período livre fica associado a um dia específico.</p>
+      <div id="period-list"></div>
+      <button type="submit" class="primary-button">Salvar rotina</button>
+    </form>
+  </article>
+</section>
+
+<section id="planner" class="page">
+  <div class="heading"><div><p class="eyebrow">Organização semanal</p><h1>Cronograma de estudos</h1></div><button class="primary-button" id="new-plan">+ Novo estudo</button></div>
+  <article class="card"><div id="planner-grid" class="planner-grid"></div></article>
+</section>
+
+<section id="pomodoro" class="page">
+  <div class="heading"><div><p class="eyebrow">Foco e concentração</p><h1>Pomodoro</h1></div></div>
+  <div class="pomodoro-layout">
+    <article class="card timer-card">
+      <div id="timer-mode" class="eyebrow">Concentração</div><div id="timer-display" class="timer">25:00</div>
+      <div class="timer-progress"><div id="timer-progress-bar"></div></div>
+      <label style="max-width:430px;margin:12px auto">Matéria<input id="pomodoro-subject" value="Estudo geral" maxlength="60"></label>
+      <div class="timer-actions"><button class="primary-button" id="timer-start">Iniciar</button><button class="secondary-button" id="timer-pause" disabled>Pausar</button><button class="icon-button" id="timer-reset">↻</button></div>
+      <p class="eyebrow" id="pomodoro-count" style="margin-top:12px"></p>
+    </article>
+    <article class="card">
+      <h2>Registrar estudo manual</h2>
+      <form id="manual-form" class="manual-study-card"><label>Matéria<input id="manual-subject" required maxlength="60"></label><label>Minutos<input id="manual-minutes" type="number" min="1" max="1440" required></label><button class="primary-button">Registrar estudo</button></form>
+      <h2 style="margin-top:20px">Histórico recente</h2><div id="study-history" class="list"></div>
+    </article>
+  </div>
+</section>
+
+<section id="statistics" class="page">
+  <div class="heading"><div><p class="eyebrow">Seu progresso registrado</p><h1>Estatísticas</h1></div></div>
+  <div class="stats-grid" id="statistics-stats"></div>
+  <div class="dashboard-grid"><article class="card wide"><h2>Minutos estudados por dia · últimos 7 dias</h2><canvas id="daily-chart"></canvas></article><article class="card wide"><h2>Tempo registrado por matéria</h2><canvas id="subject-chart"></canvas></article></div>
+</section>
+
+<section id="settings" class="page">
+  <div class="heading"><div><p class="eyebrow">Preferências</p><h1>Configurações</h1></div></div>
+  <div class="settings-grid">
+    <article class="card"><h2>Perfil e aparência</h2><form id="profile-form"><label>Nome de exibição<input id="display-name" maxlength="50"></label><label>Tema<select id="theme-select"><option value="light">Claro</option><option value="dark">Escuro</option></select></label><button class="primary-button">Salvar perfil</button></form></article>
+    <article class="card"><h2>Tempos do Pomodoro</h2><form id="pomodoro-settings"><label>Foco (minutos)<input id="focus-min" type="number" min="1" max="180" required></label><label>Descanso (minutos)<input id="break-min" type="number" min="1" max="60" required></label><label>Pausa longa (minutos)<input id="long-min" type="number" min="1" max="120" required></label><button class="primary-button">Salvar tempos</button></form></article>
+    <article class="card"><h2>Backup dos dados</h2><div class="button-row"><button type="button" class="secondary-button" id="export-data">Exportar JSON</button><label class="secondary-button" style="cursor:pointer">Importar JSON<input id="import-data" type="file" accept=".json,application/json" hidden></label></div></article>
+  </div>
+</section>
+</main>
+
+<dialog id="task-dialog"><form id="task-form"><div class="dialog-header"><h2 id="task-dialog-title">Nova tarefa</h2><button type="button" class="icon-button" data-close>×</button></div><input id="task-id" type="hidden"><label>Título<input id="task-title" required maxlength="120"></label><label>Matéria<input id="task-subject" required maxlength="60"></label><div class="form-grid"><label>Prazo<input id="task-due" type="date" required></label><label>Prioridade<select id="task-priority"><option value="high">Alta</option><option value="medium" selected>Média</option><option value="low">Baixa</option></select></label></div><div class="dialog-actions"><button type="button" class="secondary-button" data-close>Cancelar</button><button class="primary-button">Salvar tarefa</button></div></form></dialog>
+
+<dialog id="event-dialog"><form id="event-form"><div class="dialog-header"><h2 id="event-dialog-title">Novo compromisso</h2><button type="button" class="icon-button" data-close>×</button></div><input id="event-id" type="hidden"><label>Título<input id="event-title" required maxlength="120"></label><div class="form-grid"><label>Data<input id="event-date" type="date" required></label><label>Tipo<select id="event-type"><option value="exam">Prova</option><option value="assignment">Trabalho</option><option value="appointment">Compromisso</option></select></label></div><label>Descrição<textarea id="event-description" rows="3"></textarea></label><div class="dialog-actions"><button type="button" class="secondary-button" id="delete-event" hidden>Excluir</button><button type="button" class="secondary-button" data-close>Cancelar</button><button class="primary-button">Salvar</button></div></form></dialog>
+
+<dialog id="plan-dialog"><form id="plan-form"><div class="dialog-header"><h2>Novo estudo</h2><button type="button" class="icon-button" data-close>×</button></div><label>Matéria<input id="plan-subject" required maxlength="60"></label><div class="form-grid"><label>Dia<select id="plan-day"><option value="1">Segunda</option><option value="2">Terça</option><option value="3">Quarta</option><option value="4">Quinta</option><option value="5">Sexta</option><option value="6">Sábado</option><option value="0">Domingo</option></select></label><label>Horário<input id="plan-time" type="time" required></label></div><label>Duração (minutos)<input id="plan-duration" type="number" min="15" max="360" value="60" required></label><div class="dialog-actions"><button type="button" class="secondary-button" data-close>Cancelar</button><button class="primary-button">Salvar estudo</button></div></form></dialog>
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+
+const STORAGE_KEY="studyflow-weekly-v1";
+const DAY_NAMES=["Domingo","Segunda","Terça","Quarta","Quinta","Sexta","Sábado"];
+const DEFAULTS={
+  profile:{name:"",theme:"light"},
+  pomodoro:{focus:25,rest:5,longRest:15},
+  tasks:[],events:[],plans:[],records:[],pomodoroSessions:0,
+  routine:{type:"regular",entry:"07:30",exit:"12:30",days:[1,2,3,4,5],periods:[]}
+};
+const $=id=>document.getElementById(id);
+const esc=value=>{
+  const node=document.createElement("span");
+  node.textContent=String(value??"");
+  return node.innerHTML;
+};
+const clone=value=>typeof structuredClone==="function"?structuredClone(value):JSON.parse(JSON.stringify(value));
+const uid=prefix=>`${prefix}-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+const validTime=value=>typeof value==="string"&&/^([01]\d|2[0-3]):[0-5]\d$/.test(value);
+const toMinutes=value=>{
+  if(!validTime(value))return NaN;
+  const [hours,minutes]=value.split(":").map(Number);
+  return hours*60+minutes;
+};
+const validDate=value=>{
+  if(typeof value!=="string"||! /^\d{4}-\d{2}-\d{2}$/.test(value))return false;
+  const date=new Date(value+"T00:00:00");
+  return !Number.isNaN(date.getTime())&&date.toISOString().slice(0,10)===value;
+};
+const today=()=>{
+  const date=new Date();
+  date.setMinutes(date.getMinutes()-date.getTimezoneOffset());
+  return date.toISOString().slice(0,10);
+};
+const dateKey=date=>{
+  const local=new Date(date);
+  local.setMinutes(local.getMinutes()-local.getTimezoneOffset());
+  return local.toISOString().slice(0,10);
+};
+const minutesText=value=>{
+  const minutes=Math.max(0,Math.round(Number(value)||0));
+  const hours=Math.floor(minutes/60),rest=minutes%60;
+  return hours?`${hours} h${rest?` ${rest} min`:""}`:`${rest} min`;
+};
+
+function normalizePeriod(period){
+  return{
+    id:typeof period.id==="string"?period.id:uid("period"),
+    day:Number.isInteger(Number(period.day))?Number(period.day):1,
+    start:validTime(period.start)?period.start:"08:00",
+    end:validTime(period.end)?period.end:"08:50",
+    subject:typeof period.subject==="string"?period.subject:"",
+    kind:["class","break","free"].includes(period.kind)?period.kind:"class"
+  };
+}
+function normalizeData(raw){
+  const source=raw&&typeof raw==="object"&&!Array.isArray(raw)?raw:{};
+  const sourceRoutine=source.routine&&typeof source.routine==="object"?source.routine:{};
+  const result={
+    ...clone(DEFAULTS),
+    ...source,
+    profile:{...DEFAULTS.profile,...(source.profile||{})},
+    pomodoro:{...DEFAULTS.pomodoro,...(source.pomodoro||{})},
+    routine:{
+      ...DEFAULTS.routine,
+      ...sourceRoutine,
+      days:Array.isArray(sourceRoutine.days)?sourceRoutine.days:[...DEFAULTS.routine.days],
+      periods:Array.isArray(sourceRoutine.periods)?sourceRoutine.periods:[]
+    },
+    tasks:Array.isArray(source.tasks)?source.tasks:[],
+    events:Array.isArray(source.events)?source.events:[],
+    plans:Array.isArray(source.plans)?source.plans:[],
+    records:Array.isArray(source.records)?source.records:[],
+    pomodoroSessions:Number.isInteger(source.pomodoroSessions)?Math.max(0,source.pomodoroSessions):0
+  };
+
+  if(!["light","dark"].includes(result.profile.theme))result.profile.theme="light";
+  if(typeof result.profile.name!=="string")result.profile.name="";
+  if(!["regular","integral"].includes(result.routine.type))result.routine.type="regular";
+  if(!validTime(result.routine.entry))result.routine.entry=DEFAULTS.routine.entry;
+  if(!validTime(result.routine.exit))result.routine.exit=DEFAULTS.routine.exit;
+  result.routine.days=[...new Set(result.routine.days.filter(day=>Number.isInteger(day)&&day>=0&&day<=6))];
+
+  for(const [key,min,max] of [["focus",1,180],["rest",1,60],["longRest",1,120]]){
+    const value=Number(result.pomodoro[key]);
+    result.pomodoro[key]=Number.isInteger(value)&&value>=min&&value<=max?value:DEFAULTS.pomodoro[key];
+  }
+
+  // Compatibilidade: períodos antigos sem dia são replicados nos dias letivos.
+  const periods=[];
+  for(const period of result.routine.periods){
+    if(!period||typeof period!=="object")continue;
+    if(Number.isInteger(Number(period.day))&&Number(period.day)>=0&&Number(period.day)<=6){
+      periods.push(normalizePeriod(period));
+    }else{
+      for(const day of result.routine.days){
+        periods.push(normalizePeriod({...period,id:uid("period"),day}));
+      }
+    }
+  }
+  result.routine.periods=periods;
+
+  result.tasks=result.tasks.filter(item=>item&&typeof item.id==="string"&&typeof item.title==="string"&&typeof item.subject==="string"&&validDate(item.due)&&["high","medium","low"].includes(item.priority)).map(item=>({...item,done:!!item.done}));
+  result.events=result.events.filter(item=>item&&typeof item.id==="string"&&typeof item.title==="string"&&validDate(item.date)&&["exam","assignment","appointment"].includes(item.type)).map(item=>({...item,description:typeof item.description==="string"?item.description:"",done:!!item.done}));
+  result.plans=result.plans.filter(item=>item&&typeof item.id==="string"&&typeof item.subject==="string"&&Number.isInteger(Number(item.day))&&Number(item.day)>=0&&Number(item.day)<=6&&validTime(item.time)&&Number.isInteger(Number(item.duration))&&Number(item.duration)>=15&&Number(item.duration)<=360).map(item=>({...item,day:Number(item.day),duration:Number(item.duration)}));
+  result.records=result.records.filter(item=>item&&typeof item.id==="string"&&validDate(item.date)&&typeof item.subject==="string"&&Number(item.minutes)>0&&["outside","school"].includes(item.location)).map(item=>({...item,minutes:Number(item.minutes)}));
+  return result;
+}
+function loadData(){
+  try{
+    const raw=localStorage.getItem(STORAGE_KEY);
+    return raw?normalizeData(JSON.parse(raw)):clone(DEFAULTS);
+  }catch(error){
+    console.error("StudyFlow: erro ao carregar dados",error);
+    return clone(DEFAULTS);
+  }
+}
+let data=loadData();
+let toastTimer;
+function save(){
+  try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data));return true}
+  catch(error){console.error(error);toast("Não foi possível salvar. Verifique o espaço do navegador.");return false}
+}
+function toast(message){
+  $("toast").textContent=message;
+  $("toast").classList.add("show");
+  clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>$("toast").classList.remove("show"),2600);
+}
+function applyTheme(theme){
+  document.documentElement.dataset.theme=theme==="dark"?"dark":"light";
+  $("theme-toggle").textContent=theme==="dark"?"☀":"☾";
+}
+
+/* Navegação */
+const PAGE_NAMES={dashboard:"Dashboard",tasks:"Tarefas",calendar:"Calendário",routine:"Rotina escolar",planner:"Cronograma",pomodoro:"Pomodoro",statistics:"Estatísticas",settings:"Configurações"};
+function openPage(name){
+  if(!PAGE_NAMES[name])return;
+  document.querySelectorAll(".page").forEach(page=>page.classList.toggle("active",page.id===name));
+  document.querySelectorAll(".nav-item").forEach(button=>button.classList.toggle("active",button.dataset.page===name));
+  $("topbar-title").textContent=PAGE_NAMES[name];
+  $("sidebar").classList.remove("open");
+  if(name==="dashboard")renderDashboard();
+  if(name==="tasks")renderTasks();
+  if(name==="statistics")renderStatistics();
+}
+document.addEventListener("click",event=>{
+  const pageButton=event.target.closest("[data-page]");
+  if(pageButton){event.preventDefault();openPage(pageButton.dataset.page)}
+  const close=event.target.closest("[data-close]");
+  if(close)close.closest("dialog").close();
+});
+$("menu-toggle").addEventListener("click",()=>$("sidebar").classList.toggle("open"));
+$("theme-toggle").addEventListener("click",()=>{
+  data.profile.theme=data.profile.theme==="dark"?"light":"dark";
+  applyTheme(data.profile.theme);$("theme-select").value=data.profile.theme;save();drawAllCharts();
+});
+
+/* Atividades e tarefas */
+function calendarActivity(item){
+  const labels={exam:"Prova",assignment:"Trabalho",appointment:"Compromisso"};
+  return{id:"event:"+item.id,originalId:item.id,title:item.title,subject:labels[item.type],due:item.date,priority:item.type==="exam"?"high":"medium",done:!!item.done,source:"calendar",type:item.type};
+}
+function allActivities(){
+  return[...data.tasks.map(task=>({...task,source:"task"})),...data.events.map(calendarActivity)];
+}
+function getUrgentActivities(){
+  const limit=new Date();limit.setDate(limit.getDate()+3);
+  const limitKey=dateKey(limit);
+  return allActivities().filter(item=>!item.done&&(item.due<today()||(item.priority==="high"&&item.due>=today()&&item.due<=limitKey))).sort((a,b)=>a.due.localeCompare(b.due));
+}
+function renderUrgent(){
+  const items=getUrgentActivities();
+  const html=items.length?items.map(item=>{
+    const overdue=item.due<today();
+    return `<div class="urgent-row ${overdue?"overdue":""}">
+      <div><strong>${esc(item.title)}</strong><small>${esc(item.subject)} · ${item.source==="calendar"?"Calendário":"Tarefa"}</small></div>
+      <strong>${esc(item.due)}</strong>
+      <span class="urgent-label ${overdue?"overdue":""}">${overdue?"ATRASADA":"PRIORIDADE ALTA"}</span>
+    </div>`;
+  }).join(""):'<p class="eyebrow">Nenhuma atividade atrasada ou urgente.</p>';
+  $("dashboard-urgent").innerHTML=html;$("tasks-urgent").innerHTML=html;
+}
+function renderTasks(){
+  const query=$("task-search").value.trim().toLowerCase(),status=$("task-status").value,priority=$("task-priority-filter").value;
+  const items=allActivities().filter(item=>
+    `${item.title} ${item.subject}`.toLowerCase().includes(query)&&
+    (status==="all"||(status==="done"?item.done:!item.done))&&
+    (priority==="all"||item.priority===priority)
+  ).sort((a,b)=>Number(a.done)-Number(b.done)||a.due.localeCompare(b.due));
+
+  $("task-list").innerHTML=items.length?items.map(item=>`
+    <article class="task-item ${item.done?"done":""}">
+      <input type="checkbox" data-toggle-activity="${esc(item.id)}" ${item.done?"checked":""} aria-label="Concluir atividade">
+      <div><strong class="task-name">${esc(item.title)}</strong><small class="eyebrow">${esc(item.subject)} · ${item.source==="calendar"?"Calendário":"Tarefa"} · ${esc(item.due)}${item.due<today()&&!item.done?" · ATRASADA":""}</small></div>
+      <span class="priority ${esc(item.priority)}">${item.priority==="high"?"Alta":item.priority==="medium"?"Média":"Baixa"}</span>
+      <div class="task-actions">${item.source==="calendar"
+        ?`<button class="icon-button" data-edit-event="${esc(item.originalId)}" aria-label="Editar evento">✎</button>`
+        :`<button class="icon-button" data-edit-task="${esc(item.id)}" aria-label="Editar tarefa">✎</button><button class="icon-button" data-delete-task="${esc(item.id)}" aria-label="Excluir tarefa">×</button>`}</div>
+    </article>`).join(""):'<p class="eyebrow">Nenhuma atividade encontrada.</p>';
+  renderUrgent();
+}
+function openTask(task=null){
+  $("task-form").reset();$("task-id").value=task?.id||"";
+  $("task-dialog-title").textContent=task?"Editar tarefa":"Nova tarefa";
+  $("task-title").value=task?.title||"";$("task-subject").value=task?.subject||"";
+  $("task-due").value=task?.due||today();$("task-priority").value=task?.priority||"medium";
+  $("task-dialog").showModal();
+}
+$("new-task").addEventListener("click",()=>openTask());
+$("task-search").addEventListener("input",renderTasks);
+$("task-status").addEventListener("change",renderTasks);
+$("task-priority-filter").addEventListener("change",renderTasks);
+$("task-form").addEventListener("submit",event=>{
+  event.preventDefault();
+  const id=$("task-id").value,existing=data.tasks.find(task=>task.id===id);
+  const task={id:id||uid("task"),title:$("task-title").value.trim(),subject:$("task-subject").value.trim(),due:$("task-due").value,priority:$("task-priority").value,done:existing?.done||false};
+  if(!task.title||!task.subject||!validDate(task.due))return toast("Preencha os campos corretamente.");
+  if(existing)Object.assign(existing,task);else data.tasks.push(task);
+  save();$("task-dialog").close();renderTasks();renderDashboard();renderStatistics();
+});
+$("task-list").addEventListener("click",event=>{
+  const editTask=event.target.closest("[data-edit-task]");
+  const deleteTask=event.target.closest("[data-delete-task]");
+  const editEvent=event.target.closest("[data-edit-event]");
+  if(editTask){const task=data.tasks.find(item=>item.id===editTask.dataset.editTask);if(task)openTask(task)}
+  if(deleteTask&&confirm("Excluir esta tarefa?")){
+    data.tasks=data.tasks.filter(item=>item.id!==deleteTask.dataset.deleteTask);
+    save();renderTasks();renderDashboard();renderStatistics();
+  }
+  if(editEvent){const item=data.events.find(entry=>entry.id===editEvent.dataset.editEvent);if(item)openEvent(item)}
+});
+$("task-list").addEventListener("change",event=>{
+  const checkbox=event.target.closest("[data-toggle-activity]");
+  if(!checkbox)return;
+  const id=checkbox.dataset.toggleActivity;
+  if(id.startsWith("event:")){
+    const item=data.events.find(entry=>entry.id===id.slice(6));
+    if(item)item.done=checkbox.checked;
+  }else{
+    const task=data.tasks.find(entry=>entry.id===id);
+    if(task)task.done=checkbox.checked;
+  }
+  save();renderTasks();renderDashboard();renderStatistics();renderCalendar();
+});
+
+/* Dashboard */
+function renderDashboard(){
+  const hour=new Date().getHours(),greeting=hour<12?"Bom dia":hour<18?"Boa tarde":"Boa noite";
+  $("greeting").textContent=`${greeting}${data.profile.name?", "+data.profile.name:""}!`;
+  const pending=data.tasks.filter(task=>!task.done).length,completed=data.tasks.filter(task=>task.done).length;
+  const todayMinutes=data.records.filter(record=>record.date===today()).reduce((sum,record)=>sum+record.minutes,0);
+  $("dashboard-stats").innerHTML=`
+    <article class="stat-card"><span>Tarefas pendentes</span><strong>${pending}</strong></article>
+    <article class="stat-card"><span>Tarefas concluídas</span><strong>${completed}</strong></article>
+    <article class="stat-card"><span>Estudo registrado hoje</span><strong>${minutesText(todayMinutes)}</strong></article>
+    <article class="stat-card"><span>Sessões Pomodoro</span><strong>${data.pomodoroSessions}</strong></article>`;
+  const events=data.events.filter(item=>item.date>=today()&&!item.done).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,5);
+  $("next-events").innerHTML=events.length?events.map(item=>`<div class="list-item"><span>${esc(item.title)}</span><strong>${esc(item.date)}</strong></div>`).join(""):'<p class="eyebrow">Nenhum compromisso próximo.</p>';
+  const tasks=data.tasks.filter(item=>!item.done).sort((a,b)=>a.due.localeCompare(b.due)).slice(0,5);
+  $("pending-tasks").innerHTML=tasks.length?tasks.map(item=>`<div class="list-item"><span>${esc(item.title)}</span><strong>${esc(item.due)}</strong></div>`).join(""):'<p class="eyebrow">Nenhuma tarefa pendente.</p>';
+  renderUrgent();drawAllCharts();
+}
+
+/* Calendário */
+let calendarDate=new Date();
+function renderCalendar(){
+  const year=calendarDate.getFullYear(),month=calendarDate.getMonth();
+  $("month-title").textContent=new Intl.DateTimeFormat("pt-BR",{month:"long",year:"numeric"}).format(calendarDate);
+  const first=new Date(year,month,1),start=new Date(year,month,1-first.getDay());
+  let html="";
+  for(let i=0;i<42;i++){
+    const date=new Date(start);date.setDate(start.getDate()+i);
+    const key=dateKey(date),events=data.events.filter(item=>item.date===key);
+    html+=`<button class="calendar-day ${date.getMonth()!==month?"outside":""} ${key===today()?"today":""}" data-calendar-date="${key}">
+      <strong>${date.getDate()}</strong>
+      ${events.map(item=>`<span class="event-chip ${esc(item.type)}" data-calendar-event="${esc(item.id)}">${esc(item.title)}</span>`).join("")}
+    </button>`;
+  }
+  $("calendar-grid").innerHTML=html;
+}
+$("month-prev").addEventListener("click",()=>{calendarDate=new Date(calendarDate.getFullYear(),calendarDate.getMonth()-1,1);renderCalendar()});
+$("month-next").addEventListener("click",()=>{calendarDate=new Date(calendarDate.getFullYear(),calendarDate.getMonth()+1,1);renderCalendar()});
+$("new-event").addEventListener("click",()=>openEvent());
+$("calendar-grid").addEventListener("click",event=>{
+  const chip=event.target.closest("[data-calendar-event]");
+  if(chip){event.stopPropagation();const item=data.events.find(entry=>entry.id===chip.dataset.calendarEvent);if(item)openEvent(item);return}
+  const day=event.target.closest("[data-calendar-date]");
+  if(day)openEvent(null,day.dataset.calendarDate);
+});
+function openEvent(item=null,date=today()){
+  $("event-form").reset();$("event-id").value=item?.id||"";
+  $("event-dialog-title").textContent=item?"Editar compromisso":"Novo compromisso";
+  $("event-title").value=item?.title||"";$("event-date").value=item?.date||date;
+  $("event-type").value=item?.type||"exam";$("event-description").value=item?.description||"";
+  $("delete-event").hidden=!item;$("event-dialog").showModal();
+}
+$("event-form").addEventListener("submit",event=>{
+  event.preventDefault();
+  const id=$("event-id").value,existing=data.events.find(item=>item.id===id);
+  const item={id:id||uid("event"),title:$("event-title").value.trim(),date:$("event-date").value,type:$("event-type").value,description:$("event-description").value.trim(),done:existing?.done||false};
+  if(!item.title||!validDate(item.date))return toast("Informe título e data válidos.");
+  if(existing)Object.assign(existing,item);else data.events.push(item);
+  save();$("event-dialog").close();renderCalendar();renderTasks();renderDashboard();
+});
+$("delete-event").addEventListener("click",()=>{
+  const id=$("event-id").value;
+  if(!id||!confirm("Excluir este compromisso?"))return;
+  data.events=data.events.filter(item=>item.id!==id);
+  save();$("event-dialog").close();renderCalendar();renderTasks();renderDashboard();
+});
+
+/* Rotina por dia da semana */
+$("school-days").innerHTML=DAY_NAMES.map((name,day)=>`<label><input type="checkbox" value="${day}">${name}</label>`).join("");
+
+function loadRoutine(){
+  const routine=data.routine;
+  $("school-type").value=routine.type;
+  $("school-entry").value=routine.entry;
+  $("school-exit").value=routine.exit;
+  document.querySelectorAll("#school-days input").forEach(input=>{
+    input.checked=routine.days.includes(Number(input.value));
+  });
+  renderPeriods();
+}
+function renderPeriods(){
+  const dayOptions=DAY_NAMES.map((name,day)=>`<option value="${day}">${name}</option>`).join("");
+  $("period-list").innerHTML=data.routine.periods.length?data.routine.periods.map(period=>`
+    <div class="period-row" data-period-id="${esc(period.id)}">
+      <label>Dia<select class="period-day">${dayOptions}</select></label>
+      <label>Início<input class="period-start" type="time" value="${esc(period.start)}" required></label>
+      <label>Fim<input class="period-end" type="time" value="${esc(period.end)}" required></label>
+      <label>Matéria / descrição<input class="period-subject" value="${esc(period.subject)}" maxlength="60"></label>
+      <label>Tipo<select class="period-kind">
+        <option value="class">Aula</option>
+        <option value="break">Intervalo/almoço</option>
+        <option value="free">Horário livre</option>
+      </select></label>
+      <button type="button" class="icon-button" data-remove-period="${esc(period.id)}" aria-label="Remover período">×</button>
+    </div>
+  `).join(""):'<p class="eyebrow">Nenhum período cadastrado.</p>';
+
+  document.querySelectorAll(".period-row").forEach(row=>{
+    const period=data.routine.periods.find(item=>item.id===row.dataset.periodId);
+    if(!period)return;
+    row.querySelector(".period-day").value=String(period.day);
+    row.querySelector(".period-kind").value=period.kind;
+  });
+}
+function readPeriodsFromForm(){
+  return [...document.querySelectorAll(".period-row")].map(row=>({
+    id:row.dataset.periodId,
+    day:Number(row.querySelector(".period-day").value),
+    start:row.querySelector(".period-start").value,
+    end:row.querySelector(".period-end").value,
+    subject:row.querySelector(".period-subject").value.trim(),
+    kind:row.querySelector(".period-kind").value
+  }));
+}
+$("add-period").addEventListener("click",()=>{
+  const selected=[...document.querySelectorAll("#school-days input:checked")].map(input=>Number(input.value));
+  const day=selected[0]??1;
+  const start=$("school-entry").value||"08:00";
+  const startMinutes=toMinutes(start);
+  const endMinutes=Math.min(startMinutes+50,1439);
+  const end=`${String(Math.floor(endMinutes/60)).padStart(2,"0")}:${String(endMinutes%60).padStart(2,"0")}`;
+  data.routine.periods=readPeriodsFromForm();
+  data.routine.periods.push({id:uid("period"),day,start,end,subject:"",kind:"class"});
+  renderPeriods();
+});
+$("period-list").addEventListener("click",event=>{
+  const button=event.target.closest("[data-remove-period]");
+  if(!button)return;
+  data.routine.periods=readPeriodsFromForm().filter(item=>item.id!==button.dataset.removePeriod);
+  renderPeriods();
+});
+
+/* Adiciona almoço ou intervalo recorrente em vários dias. */
+$("add-fixed-break").addEventListener("click",()=>{
+  const selectedDays=[...document.querySelectorAll("#fixed-break-days input:checked")].map(input=>Number(input.value));
+  const start=$("fixed-break-start").value,end=$("fixed-break-end").value;
+  const label=$("fixed-break-type").value;
+
+  if(!selectedDays.length)return toast("Selecione ao menos um dia para o período fixo.");
+  if(!validTime(start)||!validTime(end)||toMinutes(end)<=toMinutes(start)){
+    return toast("Confira os horários do almoço ou intervalo.");
+  }
+
+  const entry=$("school-entry").value,exit=$("school-exit").value;
+  if(validTime(entry)&&toMinutes(start)<toMinutes(entry))return toast("O período começa antes da entrada escolar.");
+  if(validTime(exit)&&toMinutes(end)>toMinutes(exit))return toast("O período termina depois da saída escolar.");
+
+  const currentPeriods=readPeriodsFromForm();
+  for(const day of selectedDays){
+    const overlap=currentPeriods.find(period=>
+      period.day===day&&toMinutes(start)<toMinutes(period.end)&&toMinutes(end)>toMinutes(period.start)
+    );
+    if(overlap)return toast(`O horário se sobrepõe a outro período na ${DAY_NAMES[day]}.`);
+  }
+
+  const schoolDays=new Set([
+    ...[...document.querySelectorAll("#school-days input:checked")].map(input=>Number(input.value)),
+    ...selectedDays
+  ]);
+  document.querySelectorAll("#school-days input").forEach(input=>{
+    input.checked=schoolDays.has(Number(input.value));
+  });
+
+  data.routine.periods=[
+    ...currentPeriods,
+    ...selectedDays.map(day=>({
+      id:uid("period"),day,start,end,subject:label,kind:"break"
+    }))
+  ];
+  renderPeriods();
+  toast(`${label} adicionado aos dias selecionados. Clique em “Salvar rotina” para guardar.`);
+});
+
+$("routine-form").addEventListener("submit",event=>{
+  event.preventDefault();
+  const entry=$("school-entry").value,exit=$("school-exit").value;
+  if(!validTime(entry)||!validTime(exit)||toMinutes(exit)<=toMinutes(entry))return toast("Confira entrada e saída.");
+  const days=[...document.querySelectorAll("#school-days input:checked")].map(input=>Number(input.value));
+  if(!days.length)return toast("Selecione ao menos um dia de aula.");
+
+  const periods=readPeriodsFromForm();
+  for(const period of periods){
+    if(!days.includes(period.day))return toast(`Marque ${DAY_NAMES[period.day]} como dia de aula.`);
+    if(!validTime(period.start)||!validTime(period.end)||toMinutes(period.end)<=toMinutes(period.start))return toast("Confira os horários de cada período.");
+    if(toMinutes(period.start)<toMinutes(entry)||toMinutes(period.end)>toMinutes(exit))return toast("Os períodos devem estar dentro do horário escolar.");
+    if(period.kind==="class"&&!period.subject)return toast("Informe a matéria de cada aula.");
+  }
+
+  const sorted=[...periods].sort((a,b)=>a.day-b.day||a.start.localeCompare(b.start));
+  for(let i=1;i<sorted.length;i++){
+    if(sorted[i].day===sorted[i-1].day&&toMinutes(sorted[i].start)<toMinutes(sorted[i-1].end)){
+      return toast(`Há períodos sobrepostos na ${DAY_NAMES[sorted[i].day]}.`);
+    }
+  }
+
+  data.routine={type:$("school-type").value,entry,exit,days,periods};
+  save();loadRoutine();renderPlanner();renderDashboard();
+  toast("Rotina escolar salva.");
+});
+
+/* Cronograma: conflitos verificados para o dia específico */
+function planConflict(plan,ignoreId=""){
+  const start=toMinutes(plan.time),duration=Number(plan.duration),end=start+duration,day=Number(plan.day);
+  if(!validTime(plan.time)||!Number.isInteger(duration)||duration<15||duration>360)return "Horário ou duração inválidos";
+  if(end>1440)return "O estudo ultrapassa o fim do dia";
+
+  if(data.routine.days.includes(day)){
+    const sameDay=data.routine.periods.filter(period=>Number(period.day)===day);
+    for(const period of sameDay){
+      if(start<toMinutes(period.end)&&end>toMinutes(period.start)){
+        if(period.kind==="class")return `Conflito com aula: ${period.subject||"matéria"}`;
+        if(period.kind==="break")return `Conflito com ${period.subject||"intervalo/almoço"}`;
+        return "Conflito com período livre da escola";
+      }
+    }
+    if(!sameDay.length&&start<toMinutes(data.routine.exit)&&end>toMinutes(data.routine.entry)){
+      return "Conflito com horário escolar";
+    }
+  }
+
+  const overlap=data.plans.find(item=>
+    item.id!==ignoreId&&Number(item.day)===day&&
+    start<toMinutes(item.time)+Number(item.duration)&&
+    end>toMinutes(item.time)
+  );
+  return overlap?`Sobreposição com ${overlap.subject}`:"";
+}
+function renderPlanner(){
+  $("planner-grid").innerHTML=DAY_NAMES.map((name,day)=>{
+    const plans=data.plans.filter(item=>Number(item.day)===day).sort((a,b)=>a.time.localeCompare(b.time));
+    return `<div class="planner-day"><h3>${name}</h3>${plans.length?plans.map(plan=>{
+      const conflict=planConflict(plan,plan.id);
+      return `<div class="plan-item ${conflict?"conflict":""}" title="${esc(conflict)}">
+        <button class="icon-button" data-delete-plan="${esc(plan.id)}" aria-label="Excluir estudo">×</button>
+        <strong>${esc(plan.subject)}</strong><br>${esc(plan.time)} · ${plan.duration} min
+        ${conflict?`<br><small>${esc(conflict)}</small>`:""}
+      </div>`;
+    }).join(""):'<small class="eyebrow">Sem estudos</small>'}</div>`;
+  }).join("");
+}
+$("new-plan").addEventListener("click",()=>{$("plan-form").reset();$("plan-dialog").showModal()});
+$("plan-form").addEventListener("submit",event=>{
+  event.preventDefault();
+  const plan={id:uid("plan"),subject:$("plan-subject").value.trim(),day:Number($("plan-day").value),time:$("plan-time").value,duration:Number($("plan-duration").value)};
+  if(!plan.subject||!validTime(plan.time)||!Number.isInteger(plan.duration)||plan.duration<15||plan.duration>360)return toast("Preencha os dados do estudo corretamente.");
+  const conflict=planConflict(plan);
+  if(conflict)return toast(`Horário indisponível: ${conflict}.`);
+  data.plans.push(plan);save();$("plan-dialog").close();renderPlanner();toast("Estudo adicionado.");
+});
+$("planner-grid").addEventListener("click",event=>{
+  const button=event.target.closest("[data-delete-plan]");
+  if(!button)return;
+  data.plans=data.plans.filter(item=>item.id!==button.dataset.deletePlan);
+  save();renderPlanner();
+});
+
+/* Pomodoro e registros manuais */
+const timer={interval:null,remaining:0,total:0,mode:"focus",running:false,completed:0};
+function timerLength(mode){return(mode==="focus"?data.pomodoro.focus:mode==="long"?data.pomodoro.longRest:data.pomodoro.rest)*60}
+function setTimerMode(mode){timer.mode=mode;timer.total=timerLength(mode);timer.remaining=timer.total;renderTimer()}
+function renderTimer(){
+  const min=Math.floor(timer.remaining/60),sec=timer.remaining%60;
+  $("timer-display").textContent=`${String(min).padStart(2,"0")}:${String(sec).padStart(2,"0")}`;
+  $("timer-mode").textContent=timer.mode==="focus"?"Concentração":timer.mode==="long"?"Pausa longa":"Descanso";
+  $("timer-progress-bar").style.width=`${timer.total?((timer.total-timer.remaining)/timer.total)*100:0}%`;
+  $("timer-start").disabled=timer.running;$("timer-pause").disabled=!timer.running;
+  $("pomodoro-count").textContent=`${data.pomodoroSessions} sessão(ões) concluída(s)`;
+}
+function saveStudy(subject,minutes,source){
+  data.records.push({id:uid("record"),date:today(),subject,minutes:Number(minutes),location:"outside",source});
+  save();renderHistory();renderDashboard();renderStatistics();
+}
+function pauseTimer(){clearInterval(timer.interval);timer.running=false;renderTimer()}
+function finishTimer(){
+  pauseTimer();
+  if(timer.mode==="focus"){
+    const subject=$("pomodoro-subject").value.trim()||"Estudo geral";
+    data.pomodoroSessions++;timer.completed++;
+    saveStudy(subject,data.pomodoro.focus,"pomodoro");
+    setTimerMode(timer.completed%4===0?"long":"rest");
+    toast("Sessão concluída. Hora da pausa!");
+  }else{
+    setTimerMode("focus");toast("Pausa concluída. Pronto para estudar?");
+  }
+}
+$("timer-start").addEventListener("click",()=>{
+  if(timer.running)return;
+  timer.running=true;
+  timer.interval=setInterval(()=>{
+    timer.remaining--;
+    if(timer.remaining<=0){timer.remaining=0;finishTimer()}
+    else renderTimer();
+  },1000);
+  renderTimer();
+});
+$("timer-pause").addEventListener("click",pauseTimer);
+$("timer-reset").addEventListener("click",()=>{pauseTimer();setTimerMode(timer.mode)});
+$("manual-form").addEventListener("submit",event=>{
+  event.preventDefault();
+  const subject=$("manual-subject").value.trim(),minutes=Number($("manual-minutes").value);
+  if(!subject||!Number.isInteger(minutes)||minutes<1||minutes>1440)return toast("Informe matéria e duração válidas.");
+  saveStudy(subject,minutes,"manual");event.target.reset();toast("Estudo registrado.");
+});
+function renderHistory(){
+  const records=[...data.records].sort((a,b)=>b.date.localeCompare(a.date)).slice(0,8);
+  $("study-history").innerHTML=records.length?records.map(record=>`<div class="list-item"><span>${esc(record.subject)}<small class="eyebrow">${esc(record.date)} · ${record.source==="pomodoro"?"Pomodoro":"Manual"}</small></span><strong>${minutesText(record.minutes)}</strong></div>`).join(""):'<p class="eyebrow">Sem registros de estudo ainda.</p>';
+}
+
+/* Gráficos em canvas nativo; não dependem de bibliotecas externas */
+function canvasContext(id){
+  const canvas=$(id);if(!canvas)return null;
+  const width=Math.max(280,Math.floor(canvas.getBoundingClientRect().width)),height=240,ratio=window.devicePixelRatio||1;
+  canvas.width=width*ratio;canvas.height=height*ratio;canvas.style.width="100%";canvas.style.height=height+"px";
+  const ctx=canvas.getContext("2d");ctx.setTransform(ratio,0,0,ratio,0,0);ctx.clearRect(0,0,width,height);
+  return{ctx,width,height};
+}
+function drawBarChart(id,labels,values){
+  const chart=canvasContext(id);if(!chart)return;
+  const{ctx,width,height}=chart,style=getComputedStyle(document.documentElement);
+  const text=style.getPropertyValue("--muted").trim(),grid=style.getPropertyValue("--border").trim();
+  const left=42,right=12,top=18,bottom=38,plotW=width-left-right,plotH=height-top-bottom;
+  const max=Math.max(10,...values),slot=plotW/Math.max(1,labels.length),barW=Math.min(35,slot*.58);
+  ctx.font="11px system-ui";ctx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y=top+plotH*i/4;ctx.strokeStyle=grid;ctx.beginPath();ctx.moveTo(left,y);ctx.lineTo(width-right,y);ctx.stroke();
+    ctx.fillStyle=text;ctx.textAlign="right";ctx.fillText(String(Math.round(max*(4-i)/4)),left-6,y+4);
+  }
+  values.forEach((value,i)=>{
+    const x=left+i*slot+(slot-barW)/2,h=value/max*plotH;
+    ctx.fillStyle="#2563eb";ctx.fillRect(x,top+plotH-h,barW,h);
+    ctx.fillStyle=text;ctx.textAlign="center";ctx.fillText(labels[i],x+barW/2,height-13);
+  });
+}
+function drawSubjectChart(){
+  const chart=canvasContext("subject-chart");if(!chart)return;
+  const{ctx,width}=chart,text=getComputedStyle(document.documentElement).getPropertyValue("--muted").trim();
+  const totals={};data.records.forEach(record=>totals[record.subject]=(totals[record.subject]||0)+Number(record.minutes||0));
+  const entries=Object.entries(totals).sort((a,b)=>b[1]-a[1]).slice(0,7);
+  if(!entries.length){ctx.fillStyle=text;ctx.font="14px system-ui";ctx.textAlign="center";ctx.fillText("Ainda não há registros de estudo.",width/2,125);return}
+  const labelWidth=Math.min(130,width*.35),barWidth=Math.max(40,width-labelWidth-65),max=Math.max(...entries.map(item=>item[1]));
+  const colors=["#2563eb","#60a5fa","#7c3aed","#16a34a","#d97706","#db2777","#0891b2"];
+  entries.forEach(([subject,minutes],i)=>{
+    const y=18+i*30,label=subject.length>18?subject.slice(0,16)+"…":subject;
+    ctx.font="11px system-ui";ctx.textAlign="left";ctx.fillStyle=text;ctx.fillText(label,0,y+12);
+    ctx.fillStyle=getComputedStyle(document.documentElement).getPropertyValue("--border").trim();ctx.fillRect(labelWidth,y,barWidth,14);
+    ctx.fillStyle=colors[i%colors.length];ctx.fillRect(labelWidth,y,minutes/max*barWidth,14);
+    ctx.textAlign="right";ctx.fillStyle=text;ctx.fillText(minutesText(minutes),width,y+12);
+  });
+}
+function drawAllCharts(){
+  const labels=[],values=[];
+  for(let i=6;i>=0;i--){
+    const date=new Date();date.setDate(date.getDate()-i);const key=dateKey(date);
+    labels.push(new Intl.DateTimeFormat("pt-BR",{weekday:"short"}).format(date).replace(".",""));
+    values.push(data.records.filter(record=>record.date===key).reduce((sum,record)=>sum+Number(record.minutes||0),0));
+  }
+  drawBarChart("dashboard-chart",labels,values);drawBarChart("daily-chart",labels,values);drawSubjectChart();
+}
+function renderStatistics(){
+  const total=data.records.reduce((sum,record)=>sum+Number(record.minutes||0),0);
+  $("statistics-stats").innerHTML=`
+    <article class="stat-card"><span>Tempo registrado</span><strong>${minutesText(total)}</strong></article>
+    <article class="stat-card"><span>Registros de estudo</span><strong>${data.records.length}</strong></article>
+    <article class="stat-card"><span>Sessões Pomodoro</span><strong>${data.pomodoroSessions}</strong></article>
+    <article class="stat-card"><span>Tarefas concluídas</span><strong>${data.tasks.filter(task=>task.done).length}</strong></article>`;
+  drawAllCharts();
+}
+window.addEventListener("resize",()=>{
+  clearTimeout(window.studyFlowResize);
+  window.studyFlowResize=setTimeout(drawAllCharts,150);
+});
+
+/* Configurações e backup */
+$("profile-form").addEventListener("submit",event=>{
+  event.preventDefault();data.profile.name=$("display-name").value.trim();data.profile.theme=$("theme-select").value;
+  applyTheme(data.profile.theme);save();renderDashboard();toast("Perfil atualizado.");
+});
+$("pomodoro-settings").addEventListener("submit",event=>{
+  event.preventDefault();
+  const settings={focus:Number($("focus-min").value),rest:Number($("break-min").value),longRest:Number($("long-min").value)};
+  if(!Number.isInteger(settings.focus)||settings.focus<1||settings.focus>180||
+     !Number.isInteger(settings.rest)||settings.rest<1||settings.rest>60||
+     !Number.isInteger(settings.longRest)||settings.longRest<1||settings.longRest>120)return toast("Confira os limites dos tempos.");
+  data.pomodoro=settings;save();if(!timer.running)setTimerMode(timer.mode);toast("Tempos do Pomodoro salvos.");
+});
+$("export-data").addEventListener("click",()=>{
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});
+  const url=URL.createObjectURL(blob),link=document.createElement("a");
+  link.href=url;link.download=`studyflow-${today()}.json`;link.click();URL.revokeObjectURL(url);
+});
+$("import-data").addEventListener("change",async event=>{
+  const file=event.target.files?.[0];if(!file)return;
+  try{
+    const raw=JSON.parse(await file.text());
+    if(!raw||typeof raw!=="object"||Array.isArray(raw))throw new Error("JSON inválido");
+    const next=normalizeData(raw);
+    if(!confirm("A importação substituirá os dados atuais. Continuar?"))return;
+    data=next;save();applyTheme(data.profile.theme);loadSettings();loadRoutine();
+    renderTasks();renderCalendar();renderPlanner();renderHistory();setTimerMode("focus");
+    renderDashboard();renderStatistics();toast("Dados importados.");
+  }catch(error){
+    console.error("Falha na importação:",error);
+    toast("Arquivo JSON inválido. Os dados atuais foram mantidos.");
+  }finally{event.target.value=""}
+});
+function loadSettings(){
+  $("display-name").value=data.profile.name||"";$("theme-select").value=data.profile.theme;
+  $("focus-min").value=data.pomodoro.focus;$("break-min").value=data.pomodoro.rest;$("long-min").value=data.pomodoro.longRest;
+}
+
+/* Inicialização */
+applyTheme(data.profile.theme);
+loadSettings();
+loadRoutine();
+renderTasks();
+renderCalendar();
+renderPlanner();
+renderHistory();
+setTimerMode("focus");
+renderDashboard();
+renderStatistics();
+</script>
+</body>
+</html>
